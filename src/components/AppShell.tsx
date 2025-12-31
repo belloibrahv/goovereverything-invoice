@@ -1,17 +1,28 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
-import { db, initializeSettings } from '@/lib/db';
+import { initializeSettings } from '@/lib/db';
 import { useAppStore } from '@/lib/store';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { setSettings } = useAppStore();
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    initializeSettings().then(setSettings);
+    setMounted(true);
+    initializeSettings().then(setSettings).catch(console.error);
   }, [setSettings]);
+
+  // Show loading state until mounted to prevent hydration issues
+  if (!mounted) {
+    return (
+      <div className="flex min-h-screen bg-gray-50 items-center justify-center">
+        <div className="animate-pulse text-gray-400">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-gray-50">
