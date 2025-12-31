@@ -83,7 +83,7 @@ export async function initializeSettings(): Promise<CompanySettings> {
     const defaultSettings: CompanySettings = {
       name: 'SAMIDAK TECHNICAL AND ALLIED SERVICES',
       regNumber: 'RC 6891936',
-      address: '15 Akinremi St. Ikeja, Lagos 101233', // Using address from previous invoice image or user info if not specified? 
+      address: '13, Adeyemi Makinde Str Alagbado-Ila, Alegeunle B/Stop, Lagos State, Nigeria.', // Using address from previous invoice image or user info if not specified? 
       // User said "appear with the companies address... phone... email". 
       // The image showed "13, Adeyemi Makinde Str, Alagbado-Ila...". I should use what's in the image or placeholder if not provided fully.
       // Wait, user provided email and phone. The image shows:
