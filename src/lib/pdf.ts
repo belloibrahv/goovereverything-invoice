@@ -222,7 +222,8 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
   y += 20;
 
   // === PAYMENT DETAILS (for invoices) - PROMINENT SECTION ===
-  if (doc.type === 'invoice' && settings.bankAccounts && settings.bankAccounts.length > 0) {
+  const bankAccounts = settings.bankAccounts || [];
+  if (doc.type === 'invoice' && bankAccounts.length > 0) {
     if (y + 50 > pageHeight - 30) {
       pdf.addPage();
       y = 20;
@@ -230,7 +231,7 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
 
     // Payment section header
     pdf.setFillColor(...paymentBg);
-    const paymentBoxHeight = 15 + (settings.bankAccounts.length * 25);
+    const paymentBoxHeight = 15 + (bankAccounts.length * 25);
     pdf.roundedRect(margin, y, contentWidth, paymentBoxHeight, 3, 3, 'F');
     pdf.setDrawColor(251, 191, 36); // Amber border
     pdf.setLineWidth(0.5);
@@ -250,7 +251,7 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
     y += 10;
 
     // Bank accounts
-    settings.bankAccounts.forEach((account, index) => {
+    bankAccounts.forEach((account, index) => {
       const accountY = y + (index * 22);
       
       pdf.setFontSize(10);

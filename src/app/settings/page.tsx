@@ -23,18 +23,26 @@ export default function SettingsPage() {
   useEffect(() => {
     if (settings) {
       // Migrate old settings format if needed
-      const migratedSettings = {
+      const needsMigration = !settings.bankAccounts || settings.bankAccounts.length === 0;
+      const migratedSettings: CompanySettings = {
         ...settings,
-        bankAccounts: settings.bankAccounts || [
-          {
-            bankName: (settings as any).bankName || '',
-            accountName: settings.name,
-            accountNumber: (settings as any).accountNumber || '',
-            currency: 'NGN' as Currency,
-          },
-        ],
+        bankAccounts: settings.bankAccounts && settings.bankAccounts.length > 0 
+          ? settings.bankAccounts 
+          : [
+              {
+                bankName: (settings as any).bankName || 'Your Bank',
+                accountName: settings.name || 'Account Name',
+                accountNumber: (settings as any).accountNumber || '',
+                currency: 'NGN' as Currency,
+              },
+            ],
       };
       setForm(migratedSettings);
+      
+      // Update store with migrated settings
+      if (needsMigration) {
+        setSettings(migratedSettings);
+      }
     } else {
       initializeSettings().then((s) => {
         setSettings(s);
