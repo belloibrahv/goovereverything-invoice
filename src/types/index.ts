@@ -47,6 +47,7 @@ export interface BankAccount {
 export interface CompanySettings {
   id?: number;
   name: string;
+  regNumber?: string; // New field
   address: string;
   phone: string;
   email: string;

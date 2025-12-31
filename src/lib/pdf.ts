@@ -26,7 +26,7 @@ const FONTS = {
 // For standard jsPDF, '₦' often fails. Let's use 'N' for robustness or specific unicode if supported.
 function formatAmount(amount: number, currency: Currency): string {
   const currencyCode = currency === 'NGN' ? 'N' : currency === 'USD' ? '$' : currency === 'EUR' ? '€' : '£';
-  
+
   const formatted = amount.toLocaleString('en-US', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -43,7 +43,7 @@ async function loadLetterheadImage(): Promise<string | null> {
     const response = await fetch('/simidak.png');
     if (!response.ok) return null;
     const blob = await response.blob();
-    
+
     return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onloadend = () => resolve(reader.result as string);
@@ -60,20 +60,20 @@ async function cropLetterheadHeader(img: HTMLImageElement): Promise<string | nul
   try {
     const canvas = document.createElement('canvas');
     // Adjusted ratio to capture the logo area properly without cutting
-    const headerRatio = 0.22; 
-    
+    const headerRatio = 0.22;
+
     canvas.width = img.width;
     canvas.height = img.height * headerRatio;
-    
+
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
-    
+
     ctx.drawImage(
       img,
       0, 0, img.width, img.height * headerRatio,
       0, 0, canvas.width, canvas.height
     );
-    
+
     return canvas.toDataURL('image/png');
   } catch {
     return null;
@@ -86,19 +86,19 @@ async function cropLetterheadFooter(img: HTMLImageElement): Promise<string | nul
     const canvas = document.createElement('canvas');
     const footerRatio = 0.10; // Bottom 10%
     const startY = img.height * (1 - footerRatio);
-    
+
     canvas.width = img.width;
     canvas.height = img.height * footerRatio;
-    
+
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
-    
+
     ctx.drawImage(
       img,
       0, startY, img.width, img.height * footerRatio,
       0, 0, canvas.width, canvas.height
     );
-    
+
     return canvas.toDataURL('image/png');
   } catch {
     return null;
@@ -111,7 +111,7 @@ async function prepareLetterhead(): Promise<{ header: string | null; footer: str
     const response = await fetch('/simidak.png');
     if (!response.ok) return { header: null, footer: null };
     const blob = await response.blob();
-    
+
     return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -138,10 +138,10 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
   const pageHeight = pdf.internal.pageSize.getHeight(); // 297mm
   const margin = 15; // increased margin for cleaner look
   const contentWidth = pageWidth - margin * 2; // 180mm
-  
+
   // Load letterhead parts
   const letterhead = await prepareLetterhead();
-  
+
   const headerHeight = 45; // mm for header image area
   const footerHeight = 25; // mm for footer image area
   let y = 10;
@@ -150,15 +150,58 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
   // We place the header image at top 0,0
   if (letterhead.header) {
     pdf.addImage(letterhead.header, 'PNG', 0, 0, pageWidth, headerHeight);
-    y = headerHeight + 10;
+    y = headerHeight + 5;
   } else {
     y = 20; // fallback if no image
   }
 
+  // --- COMPANY CONTACT INFO (New Request) ---
+  // "appear under the logo or after the document header"
+  // Reg No, Address, Phone, Email
+
+  pdf.setFontSize(8); // Small professional font
+  pdf.setFont(FONTS.bold, 'bold');
+  pdf.setTextColor(...COLORS.primary);
+
+  let contactY = y;
+  const centerX = pageWidth / 2;
+
+  // Reg Number
+  if (settings.regNumber) {
+    pdf.text(`REG NO: ${settings.regNumber}`, centerX, contactY, { align: 'center' });
+    contactY += 4;
+  }
+
+  // Address & Contact - grouped for professionalism
+  pdf.setFont(FONTS.regular, 'normal');
+  pdf.setTextColor(...COLORS.textDark);
+
+  // Combine Address, Phone, Email into one or two lines centered
+  // Line 1: Address
+  if (settings.address) {
+    pdf.text(settings.address, centerX, contactY, { align: 'center' });
+    contactY += 4;
+  }
+
+  // Line 2: Phone | Email
+  const contactLine = [
+    settings.phone,
+    settings.email
+  ].filter(Boolean).join(' | ');
+
+  if (contactLine) {
+    pdf.text(contactLine, centerX, contactY, { align: 'center' });
+    contactY += 8; // Extra spacing after this block
+  } else {
+    contactY += 4;
+  }
+
+  y = contactY; // Update main Y cursor
+
   // --- DOCUMENT HEADER SECTION ---
   // Left: Bill To
   // Right: Invoice Info
-  
+
   const twoColY = y;
   const colWidth = contentWidth / 2 - 5;
   const rightColX = margin + colWidth + 10;
@@ -179,18 +222,18 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
   pdf.setTextColor(...COLORS.textGray);
   pdf.setFont(FONTS.regular, 'normal');
   pdf.text('BILL TO', margin, currentY(y));
-  
+
   pdf.setFontSize(11);
   pdf.setTextColor(...COLORS.textDark);
   pdf.setFont(FONTS.bold, 'bold');
   y += 5;
   pdf.text(doc.customer.name, margin, y);
-  
+
   pdf.setFontSize(10);
   pdf.setFont(FONTS.regular, 'normal');
   pdf.setTextColor(...COLORS.textDark);
   y += 5;
-  
+
   let addrY = y;
   if (doc.customer.address) {
     const splitAddr = pdf.splitTextToSize(doc.customer.address, colWidth);
@@ -205,21 +248,21 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
     pdf.text(doc.customer.email, margin, addrY);
     addrY += 4;
   }
-  
+
   // --- DOC INFO (RIGHT) ---
   // We align this block to the right, under the huge title
-  
+
   let infoY = twoColY + 5;
   const labelX = rightColX + 20;
   const valueX = pageWidth - margin;
-  
+
   // Helper to draw row
   const drawInfoRow = (label: string, value: string) => {
     pdf.setFontSize(9);
     pdf.setTextColor(...COLORS.textGray);
     pdf.setFont(FONTS.regular, 'normal');
     pdf.text(label, labelX, infoY);
-    
+
     pdf.setFontSize(10);
     pdf.setTextColor(...COLORS.textDark);
     pdf.setFont(FONTS.bold, 'bold');
@@ -230,7 +273,7 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
   drawInfoRow(`${doc.type === 'invoice' ? 'Invoice' : 'Document'} No:`, doc.serialNumber);
   drawInfoRow('Date:', formatDate(doc.createdAt));
   // Additional info can go here
-  
+
   // Move y to the greater of the two columns + spacing
   y = Math.max(addrY, infoY) + 15;
 
@@ -240,7 +283,7 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
   // - Clear headings
   // - Right aligned numbers
   // - Subtle dividers
-  
+
   const headers = ['S/N', 'DESCRIPTION', 'QTY', 'UNIT PRICE', 'AMOUNT'];
   // Widths in %, roughly summing to 100% of contentWidth
   // Fixed widths in mm
@@ -249,7 +292,7 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
   const wPrice = 35;
   const wAmount = 35;
   const wDesc = contentWidth - (wSN + wQty + wPrice + wAmount); // remaining space
-  
+
   const xSN = margin;
   const xDesc = xSN + wSN;
   const xQty = xDesc + wDesc;
@@ -260,19 +303,19 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
   const headerH = 10;
   pdf.setFillColor(...COLORS.tableHeaderBg);
   pdf.rect(margin, y, contentWidth, headerH, 'F');
-  
+
   // Header Text
   const headerTextY = y + 6.5;
   pdf.setFontSize(8);
   pdf.setFont(FONTS.bold, 'bold');
   pdf.setTextColor(...COLORS.tableHeaderTx);
-  
-  pdf.text('S/N', xSN + (wSN/2), headerTextY, { align: 'center' });
+
+  pdf.text('S/N', xSN + (wSN / 2), headerTextY, { align: 'center' });
   pdf.text('DESCRIPTION', xDesc + 2, headerTextY, { align: 'left' });
-  pdf.text('QTY', xQty + (wQty/2), headerTextY, { align: 'center' });
+  pdf.text('QTY', xQty + (wQty / 2), headerTextY, { align: 'center' });
   pdf.text('UNIT PRICE', xPrice + wPrice - 2, headerTextY, { align: 'right' });
   pdf.text('AMOUNT', xAmount + wAmount - 2, headerTextY, { align: 'right' });
-  
+
   y += headerH;
 
   // Rows
@@ -284,12 +327,12 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
       // Re-draw header image on new page? Usually yes for branding consistency, or just small logo.
       // Let's re-draw full header for consistency as per user request "letter header brand styles".
       if (letterhead.header) {
-          pdf.addImage(letterhead.header, 'PNG', 0, 0, pageWidth, headerHeight);
-          y = headerHeight + 10;
+        pdf.addImage(letterhead.header, 'PNG', 0, 0, pageWidth, headerHeight);
+        y = headerHeight + 10;
       } else {
-          y = 20;
+        y = 20;
       }
-      
+
       // Re-draw table header
       pdf.setFillColor(...COLORS.tableHeaderBg);
       pdf.rect(margin, y, contentWidth, headerH, 'F');
@@ -297,9 +340,9 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
       pdf.setFont(FONTS.bold, 'bold');
       pdf.setTextColor(...COLORS.tableHeaderTx);
       const hy = y + 6.5;
-      pdf.text('S/N', xSN + (wSN/2), hy, { align: 'center' });
+      pdf.text('S/N', xSN + (wSN / 2), hy, { align: 'center' });
       pdf.text('DESCRIPTION', xDesc + 2, hy, { align: 'left' });
-      pdf.text('QTY', xQty + (wQty/2), hy, { align: 'center' });
+      pdf.text('QTY', xQty + (wQty / 2), hy, { align: 'center' });
       pdf.text('UNIT PRICE', xPrice + wPrice - 2, hy, { align: 'right' });
       pdf.text('AMOUNT', xAmount + wAmount - 2, hy, { align: 'right' });
       y += headerH;
@@ -319,29 +362,29 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
     pdf.setTextColor(...COLORS.textDark);
     const ry = y + 6;
 
-    pdf.text((index + 1).toString(), xSN + (wSN/2), ry, { align: 'center' });
-    
+    pdf.text((index + 1).toString(), xSN + (wSN / 2), ry, { align: 'center' });
+
     // Truncate description if too long to keep strict line height for now (can expand later if needed)
     let desc = item.description;
     const maxDescW = wDesc - 4;
     if (pdf.getTextWidth(desc) > maxDescW) {
-        // simple truncation
-        desc = pdf.splitTextToSize(desc, maxDescW)[0] + '...';
+      // simple truncation
+      desc = pdf.splitTextToSize(desc, maxDescW)[0] + '...';
     }
     pdf.text(desc, xDesc + 2, ry, { align: 'left' });
-    
-    pdf.text(item.quantity.toString(), xQty + (wQty/2), ry, { align: 'center' });
-    
+
+    pdf.text(item.quantity.toString(), xQty + (wQty / 2), ry, { align: 'center' });
+
     pdf.text(formatAmount(item.unitPrice, doc.currency), xPrice + wPrice - 2, ry, { align: 'right' });
-    
+
     pdf.setFont(FONTS.bold, 'bold');
     pdf.text(formatAmount(item.amount, doc.currency), xAmount + wAmount - 2, ry, { align: 'right' });
-    
+
     // Bottom border for row
     pdf.setDrawColor(...COLORS.borderColor);
     pdf.setLineWidth(0.1);
     pdf.line(margin, y + rowH, widthLimit(), y + rowH);
-    
+
     y += rowH;
   });
 
@@ -349,7 +392,7 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
   y += 5;
   const totalsW = wPrice + wAmount + 10;
   const totalsX = pageWidth - margin - totalsW;
-  
+
   // Subtotal
   pdf.setFontSize(9);
   pdf.setFont(FONTS.regular, 'normal');
@@ -371,90 +414,90 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
   // Let's do a subtle background bar for total
   pdf.setFillColor(252, 237, 237); // extremely light red
   pdf.rect(totalsX - 5, y - 6, totalsW + 5, 10, 'F');
-  
+
   pdf.setFontSize(11);
   pdf.setFont(FONTS.bold, 'bold');
   pdf.setTextColor(...COLORS.primary);
   pdf.text('TOTAL:', totalsX, y);
   pdf.text(formatAmount(doc.total, doc.currency), pageWidth - margin, y, { align: 'right' });
-  
+
   y += 15;
 
 
   // --- BANK DETAILS / NOTES ---
-  
+
   // Ensure we don't hit footer
   if (y + 40 > pageHeight - footerHeight) {
     pdf.addPage();
     if (letterhead.header) {
-        pdf.addImage(letterhead.header, 'PNG', 0, 0, pageWidth, headerHeight);
-        y = headerHeight + 10;
+      pdf.addImage(letterhead.header, 'PNG', 0, 0, pageWidth, headerHeight);
+      y = headerHeight + 10;
     } else {
-        y = 20;
+      y = 20;
     }
   }
 
   // Payment Info - Styled Box
   const bankAccounts = settings.bankAccounts || [];
   if (doc.type === 'invoice' && bankAccounts.length > 0) {
+    pdf.setFontSize(9);
+    pdf.setFont(FONTS.bold, 'bold');
+    pdf.setTextColor(...COLORS.primary);
+    pdf.text('PAYMENT DETAILS', margin, y);
+    y += 5;
+
+    pdf.setDrawColor(...COLORS.primary);
+    pdf.setLineWidth(0.5);
+    pdf.line(margin, y, margin + 40, y); // underline
+    y += 5;
+
+    bankAccounts.forEach(acc => {
       pdf.setFontSize(9);
-      pdf.setFont(FONTS.bold, 'bold');
-      pdf.setTextColor(...COLORS.primary);
-      pdf.text('PAYMENT DETAILS', margin, y);
-      y += 5;
-      
-      pdf.setDrawColor(...COLORS.primary);
-      pdf.setLineWidth(0.5);
-      pdf.line(margin, y, margin + 40, y); // underline
-      y += 5;
-      
-      bankAccounts.forEach(acc => {
-          pdf.setFontSize(9);
-          pdf.setFont(FONTS.regular, 'normal');
-          pdf.setTextColor(...COLORS.textGray);
-          
-          const startX = margin;
-          // Bank Name
-          pdf.text('Bank Name:', startX, y);
-          pdf.setFont(FONTS.bold, 'bold');
-          pdf.setTextColor(...COLORS.textDark);
-          pdf.text(acc.bankName, startX + 25, y);
-          y += 5;
-          
-          // Account Name
-          pdf.setFont(FONTS.regular, 'normal');
-          pdf.setTextColor(...COLORS.textGray);
-          pdf.text('Account Name:', startX, y);
-          pdf.setFont(FONTS.bold, 'bold');
-          pdf.setTextColor(...COLORS.textDark);
-          pdf.text(acc.accountName, startX + 25, y);
-          y += 5;
-          
-          // Account No
-          pdf.setFont(FONTS.regular, 'normal');
-          pdf.setTextColor(...COLORS.textGray);
-          pdf.text('Account No:', startX, y);
-          pdf.setFont(FONTS.bold, 'bold');
-          pdf.setTextColor(...COLORS.primary); // Highlight acc number
-          pdf.text(acc.accountNumber, startX + 25, y);
-          y += 8; // spacing between banks
-      });
-  }
-  
-  // Notes
-  if (doc.notes) {
-      y += 5;
-      pdf.setFontSize(9);
-      pdf.setFont(FONTS.bold, 'bold');
-      pdf.setTextColor(...COLORS.primary);
-      pdf.text('NOTES', margin, y);
-      y += 5;
-      
-      pdf.setFontSize(8);
       pdf.setFont(FONTS.regular, 'normal');
       pdf.setTextColor(...COLORS.textGray);
-      const splitNotes = pdf.splitTextToSize(doc.notes, contentWidth);
-      pdf.text(splitNotes, margin, y);
+
+      const startX = margin;
+      // Bank Name
+      pdf.text('Bank Name:', startX, y);
+      pdf.setFont(FONTS.bold, 'bold');
+      pdf.setTextColor(...COLORS.textDark);
+      pdf.text(acc.bankName, startX + 25, y);
+      y += 5;
+
+      // Account Name
+      pdf.setFont(FONTS.regular, 'normal');
+      pdf.setTextColor(...COLORS.textGray);
+      pdf.text('Account Name:', startX, y);
+      pdf.setFont(FONTS.bold, 'bold');
+      pdf.setTextColor(...COLORS.textDark);
+      pdf.text(acc.accountName, startX + 25, y);
+      y += 5;
+
+      // Account No
+      pdf.setFont(FONTS.regular, 'normal');
+      pdf.setTextColor(...COLORS.textGray);
+      pdf.text('Account No:', startX, y);
+      pdf.setFont(FONTS.bold, 'bold');
+      pdf.setTextColor(...COLORS.primary); // Highlight acc number
+      pdf.text(acc.accountNumber, startX + 25, y);
+      y += 8; // spacing between banks
+    });
+  }
+
+  // Notes
+  if (doc.notes) {
+    y += 5;
+    pdf.setFontSize(9);
+    pdf.setFont(FONTS.bold, 'bold');
+    pdf.setTextColor(...COLORS.primary);
+    pdf.text('NOTES', margin, y);
+    y += 5;
+
+    pdf.setFontSize(8);
+    pdf.setFont(FONTS.regular, 'normal');
+    pdf.setTextColor(...COLORS.textGray);
+    const splitNotes = pdf.splitTextToSize(doc.notes, contentWidth);
+    pdf.text(splitNotes, margin, y);
   }
 
 
@@ -463,9 +506,9 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
   if (letterhead.footer) {
     pdf.addImage(letterhead.footer, 'PNG', 0, pageHeight - footerHeight, pageWidth, footerHeight);
   }
-  
+
   return pdf;
-  
+
   function currentY(val: number) { return val; } // helper mostly for reading clarity
   function widthLimit() { return pageWidth - margin; }
 }

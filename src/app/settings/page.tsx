@@ -140,7 +140,7 @@ export default function SettingsPage() {
                 className="input"
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                placeholder="+234..."
+                placeholder="+234 816 237 8769"
               />
             </div>
 
@@ -151,6 +151,7 @@ export default function SettingsPage() {
                 className="input"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
+                placeholder="akeidsam69@gmail.com"
               />
             </div>
           </div>
