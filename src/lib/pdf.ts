@@ -32,9 +32,9 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
   const lightGray = [156, 163, 175] as const;
   const tableHeaderBg = [249, 250, 251] as const;
   const tableBorderColor = [229, 231, 235] as const;
+  const paymentBg = [254, 243, 199] as const; // Amber background for payment
 
   // === HEADER SECTION ===
-  // Company Name (left)
   pdf.setFontSize(28);
   pdf.setTextColor(...brandRed);
   pdf.setFont('helvetica', 'bold');
@@ -88,10 +88,8 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
   y += 12;
 
   // === BILL TO SECTION ===
-  // Two column layout
   const colWidth = contentWidth / 2;
 
-  // Bill To (left column)
   pdf.setFontSize(8);
   pdf.setTextColor(...lightGray);
   pdf.setFont('helvetica', 'bold');
@@ -125,11 +123,10 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
   y += 10;
 
   // === ITEMS TABLE ===
-  const tableStartY = y;
-  const col1Width = contentWidth * 0.45; // Description
-  const col2Width = contentWidth * 0.12; // Qty
-  const col3Width = contentWidth * 0.20; // Unit Price
-  const col4Width = contentWidth * 0.23; // Amount
+  const col1Width = contentWidth * 0.45;
+  const col2Width = contentWidth * 0.12;
+  const col3Width = contentWidth * 0.20;
+  const col4Width = contentWidth * 0.23;
 
   const col1X = margin;
   const col2X = margin + col1Width;
@@ -163,36 +160,27 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
   const rowHeight = 10;
 
   doc.items.forEach((item, index) => {
-    // Check for page break
-    if (y + rowHeight > pageHeight - 60) {
+    if (y + rowHeight > pageHeight - 80) {
       pdf.addPage();
       y = 20;
     }
 
-    // Alternating row background
     if (index % 2 === 1) {
       pdf.setFillColor(254, 254, 254);
       pdf.rect(margin, y, contentWidth, rowHeight, 'F');
     }
 
-    // Row border
     pdf.setDrawColor(...tableBorderColor);
     pdf.rect(margin, y, contentWidth, rowHeight, 'S');
 
     const rowY = y + 6.5;
     pdf.setFontSize(9);
     
-    // Description (truncate if too long)
     const desc = item.description.length > 40 ? item.description.substring(0, 40) + '...' : item.description;
     pdf.text(desc, col1X + 3, rowY);
-    
-    // Quantity (centered)
     pdf.text(String(item.quantity), col2X + col2Width / 2, rowY, { align: 'center' });
-    
-    // Unit Price (right aligned)
     pdf.text(formatAmount(item.unitPrice, doc.currency), col3X + col3Width - 3, rowY, { align: 'right' });
     
-    // Amount (right aligned, bold)
     pdf.setFont('helvetica', 'bold');
     pdf.text(formatAmount(item.amount, doc.currency), col4X + col4Width - 3, rowY, { align: 'right' });
     pdf.setFont('helvetica', 'normal');
@@ -208,7 +196,6 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
   const labelX = totalsX;
   const valueX = pageWidth - margin;
 
-  // Subtotal
   pdf.setFontSize(9);
   pdf.setTextColor(...mediumGray);
   pdf.text('Subtotal:', labelX, y);
@@ -216,18 +203,15 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
   pdf.text(formatAmount(doc.subtotal, doc.currency), valueX, y, { align: 'right' });
   y += 6;
 
-  // Tax
   pdf.setTextColor(...mediumGray);
   pdf.text(`VAT (${doc.taxRate}%):`, labelX, y);
   pdf.setTextColor(...darkGray);
   pdf.text(formatAmount(doc.tax, doc.currency), valueX, y, { align: 'right' });
   y += 8;
 
-  // Total line
   pdf.setDrawColor(...tableBorderColor);
   pdf.line(totalsX, y - 2, pageWidth - margin, y - 2);
 
-  // Total
   pdf.setFontSize(12);
   pdf.setFont('helvetica', 'bold');
   pdf.setTextColor(...darkGray);
@@ -237,36 +221,65 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
 
   y += 20;
 
-  // === PAYMENT DETAILS (for invoices) ===
-  if (doc.type === 'invoice' && settings.bankName && settings.accountNumber) {
-    // Check for page break
-    if (y + 30 > pageHeight - 30) {
+  // === PAYMENT DETAILS (for invoices) - PROMINENT SECTION ===
+  if (doc.type === 'invoice' && settings.bankAccounts && settings.bankAccounts.length > 0) {
+    if (y + 50 > pageHeight - 30) {
       pdf.addPage();
       y = 20;
     }
 
-    pdf.setFillColor(...tableHeaderBg);
-    pdf.rect(margin, y, contentWidth / 2, 25, 'F');
-    pdf.setDrawColor(...tableBorderColor);
-    pdf.rect(margin, y, contentWidth / 2, 25, 'S');
+    // Payment section header
+    pdf.setFillColor(...paymentBg);
+    const paymentBoxHeight = 15 + (settings.bankAccounts.length * 25);
+    pdf.roundedRect(margin, y, contentWidth, paymentBoxHeight, 3, 3, 'F');
+    pdf.setDrawColor(251, 191, 36); // Amber border
+    pdf.setLineWidth(0.5);
+    pdf.roundedRect(margin, y, contentWidth, paymentBoxHeight, 3, 3, 'S');
+
+    y += 8;
+    pdf.setFontSize(11);
+    pdf.setTextColor(...darkGray);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('PAYMENT INFORMATION', margin + 8, y);
+    y += 3;
 
     pdf.setFontSize(8);
-    pdf.setTextColor(...lightGray);
-    pdf.setFont('helvetica', 'bold');
-    pdf.text('PAYMENT DETAILS', margin + 5, y + 6);
-
-    pdf.setFontSize(9);
-    pdf.setTextColor(...darkGray);
+    pdf.setTextColor(...mediumGray);
     pdf.setFont('helvetica', 'normal');
-    pdf.text(`Bank: ${settings.bankName}`, margin + 5, y + 13);
-    pdf.text(`Account: ${settings.accountNumber}`, margin + 5, y + 19);
+    pdf.text('Please make payment to any of the following accounts:', margin + 8, y + 4);
+    y += 10;
 
-    y += 32;
+    // Bank accounts
+    settings.bankAccounts.forEach((account, index) => {
+      const accountY = y + (index * 22);
+      
+      pdf.setFontSize(10);
+      pdf.setTextColor(...darkGray);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(`Bank: ${account.bankName}`, margin + 8, accountY);
+      
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(9);
+      pdf.text(`Account Name: ${account.accountName}`, margin + 8, accountY + 5);
+      
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(11);
+      pdf.setTextColor(...brandRed);
+      pdf.text(`Account Number: ${account.accountNumber}`, margin + 8, accountY + 11);
+      
+      if (account.currency) {
+        pdf.setFontSize(8);
+        pdf.setTextColor(...mediumGray);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(`(${account.currency})`, margin + 8 + pdf.getTextWidth(`Account Number: ${account.accountNumber}`) + 3, accountY + 11);
+      }
+    });
+
+    y += paymentBoxHeight + 5;
   }
 
   // === NOTES ===
   if (doc.notes) {
-    // Check for page break
     if (y + 20 > pageHeight - 30) {
       pdf.addPage();
       y = 20;

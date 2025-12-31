@@ -162,11 +162,25 @@ export default function DocumentViewPage() {
           </div>
 
           {/* Bank Details */}
-          {doc.type === 'invoice' && settings && (
+          {doc.type === 'invoice' && settings?.bankAccounts && settings.bankAccounts.length > 0 && (
             <div className="pt-4 border-t">
-              <p className="font-medium text-gray-800 mb-1">Payment Details:</p>
-              <p className="text-sm text-gray-600">Bank: {settings.bankName}</p>
-              <p className="text-sm text-gray-600">Account Number: {settings.accountNumber}</p>
+              <p className="font-medium text-gray-800 mb-3">Payment Information:</p>
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-3">
+                {settings.bankAccounts.map((account, index) => (
+                  <div key={index} className={index > 0 ? 'pt-3 border-t border-amber-200' : ''}>
+                    <p className="text-sm text-gray-600">
+                      <span className="font-medium">Bank:</span> {account.bankName}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      <span className="font-medium">Account Name:</span> {account.accountName}
+                    </p>
+                    <p className="text-sm font-semibold text-red-600">
+                      Account Number: {account.accountNumber}
+                      {account.currency && <span className="text-gray-500 font-normal ml-2">({account.currency})</span>}
+                    </p>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 

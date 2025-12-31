@@ -28,8 +28,14 @@ export async function initializeSettings(): Promise<CompanySettings> {
       address: 'Lagos, Nigeria',
       phone: '+234 XXX XXX XXXX',
       email: 'info@goovereverything.com',
-      accountNumber: 'XXXXXXXXXX',
-      bankName: 'Your Bank Name',
+      bankAccounts: [
+        {
+          bankName: 'First Bank',
+          accountName: 'GOOVEREVERYTHING LTD',
+          accountNumber: '0123456789',
+          currency: 'NGN',
+        },
+      ],
       taxRate: 7.5, // Nigerian VAT
       defaultCurrency: 'NGN',
     };
@@ -38,14 +44,19 @@ export async function initializeSettings(): Promise<CompanySettings> {
     return { ...defaultSettings, id };
   } catch (error) {
     console.error('Failed to initialize settings:', error);
-    // Return default settings even if DB fails
     return {
       name: 'GOOVEREVERYTHING',
       address: 'Lagos, Nigeria',
       phone: '+234 XXX XXX XXXX',
       email: 'info@goovereverything.com',
-      accountNumber: 'XXXXXXXXXX',
-      bankName: 'Your Bank Name',
+      bankAccounts: [
+        {
+          bankName: 'First Bank',
+          accountName: 'GOOVEREVERYTHING LTD',
+          accountNumber: '0123456789',
+          currency: 'NGN',
+        },
+      ],
       taxRate: 7.5,
       defaultCurrency: 'NGN',
     };

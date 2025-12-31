@@ -37,14 +37,20 @@ export interface Document {
   status: 'draft' | 'sent' | 'paid' | 'cancelled';
 }
 
+export interface BankAccount {
+  bankName: string;
+  accountName: string;
+  accountNumber: string;
+  currency?: Currency;
+}
+
 export interface CompanySettings {
   id?: number;
   name: string;
   address: string;
   phone: string;
   email: string;
-  accountNumber: string;
-  bankName: string;
+  bankAccounts: BankAccount[];
   logo?: string;
   taxRate: number;
   defaultCurrency: Currency;

@@ -1,12 +1,19 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Save } from 'lucide-react';
+import { Save, Plus, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { AppShell } from '@/components/AppShell';
 import { db, initializeSettings } from '@/lib/db';
 import { useAppStore } from '@/lib/store';
-import type { CompanySettings, Currency } from '@/types';
+import type { CompanySettings, Currency, BankAccount } from '@/types';
+
+const emptyBankAccount = (): BankAccount => ({
+  bankName: '',
+  accountName: '',
+  accountNumber: '',
+  currency: 'NGN',
+});
 
 export default function SettingsPage() {
   const { settings, setSettings } = useAppStore();
@@ -15,7 +22,19 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (settings) {
-      setForm(settings);
+      // Migrate old settings format if needed
+      const migratedSettings = {
+        ...settings,
+        bankAccounts: settings.bankAccounts || [
+          {
+            bankName: (settings as any).bankName || '',
+            accountName: settings.name,
+            accountNumber: (settings as any).accountNumber || '',
+            currency: 'NGN' as Currency,
+          },
+        ],
+      };
+      setForm(migratedSettings);
     } else {
       initializeSettings().then((s) => {
         setSettings(s);
@@ -24,11 +43,39 @@ export default function SettingsPage() {
     }
   }, [settings, setSettings]);
 
+  const updateBankAccount = (index: number, field: keyof BankAccount, value: string) => {
+    if (!form) return;
+    const updated = [...form.bankAccounts];
+    updated[index] = { ...updated[index], [field]: value };
+    setForm({ ...form, bankAccounts: updated });
+  };
+
+  const addBankAccount = () => {
+    if (!form) return;
+    setForm({ ...form, bankAccounts: [...form.bankAccounts, emptyBankAccount()] });
+  };
+
+  const removeBankAccount = (index: number) => {
+    if (!form || form.bankAccounts.length <= 1) return;
+    const updated = form.bankAccounts.filter((_, i) => i !== index);
+    setForm({ ...form, bankAccounts: updated });
+  };
+
   const handleSave = async () => {
     if (!form?.id) return;
+    
+    // Validate bank accounts
+    const hasValidAccount = form.bankAccounts.some(
+      (acc) => acc.bankName && acc.accountNumber
+    );
+    if (!hasValidAccount) {
+      toast.error('Please add at least one bank account with bank name and account number');
+      return;
+    }
+
     setSaving(true);
     try {
-      await db.settings.update(form.id, form);
+      await db.settings.put(form);
       setSettings(form);
       toast.success('Settings saved!');
     } catch (error) {
@@ -51,7 +98,7 @@ export default function SettingsPage() {
       <div className="max-w-2xl mx-auto space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-          <p className="text-gray-600">Configure your company details and preferences</p>
+          <p className="text-gray-600">Configure your company details and payment information</p>
         </div>
 
         <div className="card p-6 space-y-6">
@@ -100,27 +147,80 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <h2 className="text-lg font-semibold border-b pb-2 pt-4">Bank Details</h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="label">Bank Name</label>
-              <input
-                type="text"
-                className="input"
-                value={form.bankName}
-                onChange={(e) => setForm({ ...form, bankName: e.target.value })}
-              />
+          {/* Bank Accounts Section */}
+          <div className="pt-4">
+            <div className="flex items-center justify-between border-b pb-2 mb-4">
+              <h2 className="text-lg font-semibold">Bank Accounts</h2>
+              <button onClick={addBankAccount} className="btn-secondary text-sm">
+                <Plus className="w-4 h-4" /> Add Account
+              </button>
             </div>
+            <p className="text-sm text-gray-500 mb-4">
+              These account details will appear on your invoices for customers to make payments.
+            </p>
 
-            <div>
-              <label className="label">Account Number</label>
-              <input
-                type="text"
-                className="input"
-                value={form.accountNumber}
-                onChange={(e) => setForm({ ...form, accountNumber: e.target.value })}
-              />
+            <div className="space-y-4">
+              {form.bankAccounts.map((account, index) => (
+                <div key={index} className="p-4 bg-gray-50 rounded-lg space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">Account {index + 1}</span>
+                    {form.bankAccounts.length > 1 && (
+                      <button
+                        onClick={() => removeBankAccount(index)}
+                        className="p-1 text-gray-400 hover:text-red-600"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="label text-xs">Bank Name *</label>
+                      <input
+                        type="text"
+                        className="input"
+                        value={account.bankName}
+                        onChange={(e) => updateBankAccount(index, 'bankName', e.target.value)}
+                        placeholder="e.g. First Bank, GTBank"
+                      />
+                    </div>
+                    <div>
+                      <label className="label text-xs">Account Name *</label>
+                      <input
+                        type="text"
+                        className="input"
+                        value={account.accountName}
+                        onChange={(e) => updateBankAccount(index, 'accountName', e.target.value)}
+                        placeholder="Account holder name"
+                      />
+                    </div>
+                    <div>
+                      <label className="label text-xs">Account Number *</label>
+                      <input
+                        type="text"
+                        className="input font-mono"
+                        value={account.accountNumber}
+                        onChange={(e) => updateBankAccount(index, 'accountNumber', e.target.value)}
+                        placeholder="0123456789"
+                      />
+                    </div>
+                    <div>
+                      <label className="label text-xs">Currency</label>
+                      <select
+                        className="input"
+                        value={account.currency || 'NGN'}
+                        onChange={(e) => updateBankAccount(index, 'currency', e.target.value)}
+                      >
+                        <option value="NGN">NGN (Naira)</option>
+                        <option value="USD">USD (Dollar)</option>
+                        <option value="EUR">EUR (Euro)</option>
+                        <option value="GBP">GBP (Pound)</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -163,13 +263,11 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Data Info */}
         <div className="card p-6">
           <h2 className="text-lg font-semibold mb-2">Offline Storage</h2>
           <p className="text-sm text-gray-600">
             All your data is stored locally on this device using IndexedDB. Your invoices, quotations,
-            and waybills are available even when you're offline. Data syncs automatically when you
-            install this app as a PWA.
+            and waybills are available even when you're offline.
           </p>
         </div>
       </div>
