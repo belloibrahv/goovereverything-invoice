@@ -29,27 +29,27 @@ function migrateSettings(settings: any): CompanySettings {
   
   if (settings.bankName || settings.accountNumber) {
     bankAccounts.push({
-      bankName: settings.bankName || 'Your Bank',
-      accountName: settings.name || 'Account Name',
-      accountNumber: settings.accountNumber || '',
+      bankName: settings.bankName || 'FCMB',
+      accountName: settings.name || 'SAMIDAK TECHNICAL AND ALLIED SERVICES',
+      accountNumber: settings.accountNumber || '2002376450',
       currency: settings.defaultCurrency || 'NGN',
     });
   } else {
-    // No bank info at all, add default placeholder
+    // No bank info at all, add Samidak default
     bankAccounts.push({
-      bankName: 'First Bank',
-      accountName: settings.name || 'GOOVEREVERYTHING LTD',
-      accountNumber: '0123456789',
+      bankName: 'FCMB',
+      accountName: 'SAMIDAK TECHNICAL AND ALLIED SERVICES',
+      accountNumber: '2002376450',
       currency: 'NGN',
     });
   }
 
   return {
     id: settings.id,
-    name: settings.name || 'GOOVEREVERYTHING',
+    name: settings.name || 'SAMIDAK TECHNICAL AND ALLIED SERVICES',
     address: settings.address || 'Lagos, Nigeria',
     phone: settings.phone || '+234 XXX XXX XXXX',
-    email: settings.email || 'info@goovereverything.com',
+    email: settings.email || 'info@samidak.com',
     bankAccounts,
     taxRate: settings.taxRate ?? 7.5,
     defaultCurrency: settings.defaultCurrency || 'NGN',
@@ -73,17 +73,17 @@ export async function initializeSettings(): Promise<CompanySettings> {
       return migrated;
     }
 
-    // Create new default settings
+    // Create new default settings for Samidak
     const defaultSettings: CompanySettings = {
-      name: 'GOOVEREVERYTHING',
+      name: 'SAMIDAK TECHNICAL AND ALLIED SERVICES',
       address: 'Lagos, Nigeria',
       phone: '+234 XXX XXX XXXX',
-      email: 'info@goovereverything.com',
+      email: 'info@samidak.com',
       bankAccounts: [
         {
-          bankName: 'First Bank',
-          accountName: 'GOOVEREVERYTHING LTD',
-          accountNumber: '0123456789',
+          bankName: 'FCMB',
+          accountName: 'SAMIDAK TECHNICAL AND ALLIED SERVICES',
+          accountNumber: '2002376450',
           currency: 'NGN',
         },
       ],
@@ -96,15 +96,15 @@ export async function initializeSettings(): Promise<CompanySettings> {
   } catch (error) {
     console.error('Failed to initialize settings:', error);
     return {
-      name: 'GOOVEREVERYTHING',
+      name: 'SAMIDAK TECHNICAL AND ALLIED SERVICES',
       address: 'Lagos, Nigeria',
       phone: '+234 XXX XXX XXXX',
-      email: 'info@goovereverything.com',
+      email: 'info@samidak.com',
       bankAccounts: [
         {
-          bankName: 'First Bank',
-          accountName: 'GOOVEREVERYTHING LTD',
-          accountNumber: '0123456789',
+          bankName: 'FCMB',
+          accountName: 'SAMIDAK TECHNICAL AND ALLIED SERVICES',
+          accountNumber: '2002376450',
           currency: 'NGN',
         },
       ],
