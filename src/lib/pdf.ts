@@ -262,17 +262,14 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
       pdf.setFontSize(9);
       pdf.text(`Account Name: ${account.accountName}`, margin + 8, accountY + 5);
       
+      // Account number with currency on same line
       pdf.setFont('helvetica', 'bold');
       pdf.setFontSize(11);
       pdf.setTextColor(...brandRed);
-      pdf.text(`Account Number: ${account.accountNumber}`, margin + 8, accountY + 11);
-      
-      if (account.currency) {
-        pdf.setFontSize(8);
-        pdf.setTextColor(...mediumGray);
-        pdf.setFont('helvetica', 'normal');
-        pdf.text(`(${account.currency})`, margin + 8 + pdf.getTextWidth(`Account Number: ${account.accountNumber}`) + 3, accountY + 11);
-      }
+      const accountText = account.currency 
+        ? `Account Number: ${account.accountNumber}  (${account.currency})`
+        : `Account Number: ${account.accountNumber}`;
+      pdf.text(accountText, margin + 8, accountY + 11);
     });
 
     y += paymentBoxHeight + 5;
