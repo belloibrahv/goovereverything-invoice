@@ -324,13 +324,16 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
     if (y + rowH > pageHeight - footerHeight - 40) { // Keep space for totals/footer
       pdf.addPage();
       // Re-draw header image on new page? Usually yes for branding consistency, or just small logo.
-      // Let's re-draw full header for consistency as per user request "letter header brand styles".
+      // User Request: Remove header from next (page 2 and on) but keep watermark (part of full image).
       if (letterhead.full) {
         pdf.addImage(letterhead.full, 'PNG', 0, 0, pageWidth, pageHeight);
-        y = headerHeight + 10;
+        // Mask the header part to hide the logo, but keep watermark/footer
+        pdf.setFillColor(255, 255, 255);
+        pdf.rect(0, 0, pageWidth, headerHeight, 'F');
+        y = 20; // Start content higher since no header
       } else if (letterhead.header) {
-        pdf.addImage(letterhead.header, 'PNG', 0, 0, pageWidth, headerHeight);
-        y = headerHeight + 10;
+        // If only header exists (fallback), do NOT draw it on page 2+ as per request
+        y = 20;
       } else {
         y = 20;
       }
@@ -433,10 +436,13 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
     pdf.addPage();
     if (letterhead.full) {
       pdf.addImage(letterhead.full, 'PNG', 0, 0, pageWidth, pageHeight);
-      y = headerHeight + 10;
+      // Mask the header part
+      pdf.setFillColor(255, 255, 255);
+      pdf.rect(0, 0, pageWidth, headerHeight, 'F');
+      y = 20;
     } else if (letterhead.header) {
-      pdf.addImage(letterhead.header, 'PNG', 0, 0, pageWidth, headerHeight);
-      y = headerHeight + 10;
+      // Don't draw header on new page
+      y = 20;
     } else {
       y = 20;
     }
