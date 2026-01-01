@@ -26,19 +26,19 @@ export default function SettingsPage() {
       const needsMigration = !settings.bankAccounts || settings.bankAccounts.length === 0;
       const migratedSettings: CompanySettings = {
         ...settings,
-        bankAccounts: settings.bankAccounts && settings.bankAccounts.length > 0 
-          ? settings.bankAccounts 
+        bankAccounts: settings.bankAccounts && settings.bankAccounts.length > 0
+          ? settings.bankAccounts
           : [
-              {
-                bankName: (settings as any).bankName || 'Your Bank',
-                accountName: settings.name || 'Account Name',
-                accountNumber: (settings as any).accountNumber || '',
-                currency: 'NGN' as Currency,
-              },
-            ],
+            {
+              bankName: (settings as any).bankName || 'Your Bank',
+              accountName: settings.name || 'Account Name',
+              accountNumber: (settings as any).accountNumber || '',
+              currency: 'NGN' as Currency,
+            },
+          ],
       };
       setForm(migratedSettings);
-      
+
       // Update store with migrated settings
       if (needsMigration) {
         setSettings(migratedSettings);
@@ -71,7 +71,7 @@ export default function SettingsPage() {
 
   const handleSave = async () => {
     if (!form?.id) return;
-    
+
     // Validate bank accounts
     const hasValidAccount = form.bankAccounts.some(
       (acc) => acc.bankName && acc.accountNumber
@@ -153,6 +153,18 @@ export default function SettingsPage() {
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
                 placeholder="akeidsam69@gmail.com"
               />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="label">Technical Director Name</label>
+              <input
+                type="text"
+                className="input"
+                value={form.technicalDirectorName || ''}
+                onChange={(e) => setForm({ ...form, technicalDirectorName: e.target.value })}
+                placeholder="Enter Technical Director's full name (optional)"
+              />
+              <p className="text-xs text-gray-500 mt-1">This name will appear on invoices above the signature</p>
             </div>
           </div>
 

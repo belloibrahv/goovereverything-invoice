@@ -545,6 +545,15 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
   pdf.line(margin, y, margin + lineW, y);
   y += 5;
 
+  // Technical Director Name (if provided)
+  if (settings.technicalDirectorName) {
+    pdf.setFontSize(9);
+    pdf.setFont(FONTS.bold, 'bold');
+    pdf.setTextColor(...COLORS.textDark);
+    pdf.text(settings.technicalDirectorName, margin + (lineW / 2), y, { align: 'center' });
+    y += 5; // Space before title
+  }
+
   // Title
   pdf.setFontSize(10);
   pdf.setFont(FONTS.bold, 'bold');
