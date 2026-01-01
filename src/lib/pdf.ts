@@ -164,22 +164,17 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
   pdf.setTextColor(...COLORS.primary);
 
   let contactY = y;
-  const centerX = pageWidth / 2;
-
-  // Reg Number
-  if (settings.regNumber) {
-    pdf.text(`REG NO: ${settings.regNumber}`, centerX, contactY, { align: 'center' });
-    contactY += 4;
-  }
+  // Previously centered at pageWidth / 2, now aligning left at margin
+  const leftX = margin;
 
   // Address & Contact - grouped for professionalism
   pdf.setFont(FONTS.regular, 'normal');
   pdf.setTextColor(...COLORS.textDark);
 
-  // Combine Address, Phone, Email into one or two lines centered
+  // Combine Address, Phone, Email into one or two lines
   // Line 1: Address
   if (settings.address) {
-    pdf.text(settings.address, centerX, contactY, { align: 'center' });
+    pdf.text(settings.address, leftX, contactY, { align: 'left' });
     contactY += 4;
   }
 
@@ -190,7 +185,7 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
   ].filter(Boolean).join(' | ');
 
   if (contactLine) {
-    pdf.text(contactLine, centerX, contactY, { align: 'center' });
+    pdf.text(contactLine, leftX, contactY, { align: 'left' });
     contactY += 8; // Extra spacing after this block
   } else {
     contactY += 4;

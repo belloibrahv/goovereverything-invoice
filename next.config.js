@@ -2,7 +2,7 @@ const withPWA = require('next-pwa')({
   dest: 'public',
   register: true,
   skipWaiting: true,
-  disable: process.env.NODE_ENV === 'development',
+  disable: false,
   runtimeCaching: [
     {
       urlPattern: /^https?.*/,
@@ -21,6 +21,13 @@ const withPWA = require('next-pwa')({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  webpack: (config) => {
+    config.ignoreWarnings = [
+      ...(config.ignoreWarnings || []),
+      /GenerateSW has been called multiple times/,
+    ];
+    return config;
+  },
 };
 
 module.exports = withPWA(nextConfig);
