@@ -188,17 +188,17 @@ export function DocumentList({ type }: Props) {
                 <span className="font-semibold">{formatCurrency(doc.total, doc.currency)}</span>
               </div>
               <div className="flex gap-2 pt-2">
-                <Link href={`/documents/${doc.id}`} className="btn-outline flex-1 text-xs py-2">
-                  <Eye className="w-3.5 h-3.5" /> View
+                <Link href={`/documents/${doc.id}`} className="btn-outline flex-1 text-sm py-2.5 justify-center">
+                  <Eye className="w-4 h-4" /> View
                 </Link>
-                <Link href={`/create?edit=${doc.id}`} className="btn-outline flex-1 text-xs py-2">
-                  <Edit className="w-3.5 h-3.5" /> Edit
+                <Link href={`/create?edit=${doc.id}`} className="btn-outline flex-1 text-sm py-2.5 justify-center">
+                  <Edit className="w-4 h-4" /> Edit
                 </Link>
                 <button
                   onClick={() => handleDownload(doc)}
-                  className="btn-outline flex-1 text-xs py-2"
+                  className="btn-outline flex-1 text-sm py-2.5 justify-center"
                 >
-                  <Download className="w-3.5 h-3.5" /> PDF
+                  <Download className="w-4 h-4" /> PDF
                 </button>
               </div>
             </div>

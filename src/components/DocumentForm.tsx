@@ -165,11 +165,10 @@ export function DocumentForm({ type = 'invoice', editId }: Props) {
               key={t}
               onClick={() => setDocType(t)}
               disabled={!!editId}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                docType === t
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${docType === t
                   ? 'bg-red-600 text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              } ${editId ? 'cursor-not-allowed' : ''}`}
+                } ${editId ? 'cursor-not-allowed' : ''}`}
             >
               {t.charAt(0).toUpperCase() + t.slice(1)}
             </button>
@@ -254,8 +253,9 @@ export function DocumentForm({ type = 'invoice', editId }: Props) {
           <label className="label">Items</label>
           <div className="space-y-3">
             {items.map((item, idx) => (
-              <div key={item.id} className="flex flex-wrap gap-2 items-start p-3 bg-gray-50 rounded-lg">
-                <div className="flex-1 min-w-[200px]">
+              <div key={item.id} className="grid grid-cols-12 gap-3 p-3 bg-gray-50 rounded-lg items-start">
+                {/* Description - Full width on mobile, spans 6 on desktop */}
+                <div className="col-span-12 md:col-span-6">
                   <input
                     type="text"
                     className="input"
@@ -264,7 +264,8 @@ export function DocumentForm({ type = 'invoice', editId }: Props) {
                     placeholder="Item description"
                   />
                 </div>
-                <div className="w-20">
+                {/* Qty - Spans 4 on mobile, 2 on desktop */}
+                <div className="col-span-4 md:col-span-2">
                   <input
                     type="number"
                     className="input text-center"
@@ -274,7 +275,8 @@ export function DocumentForm({ type = 'invoice', editId }: Props) {
                     placeholder="Qty"
                   />
                 </div>
-                <div className="w-32">
+                {/* Price - Spans 8 on mobile, 2 on desktop */}
+                <div className="col-span-8 md:col-span-2">
                   <input
                     type="number"
                     className="input"
@@ -285,16 +287,20 @@ export function DocumentForm({ type = 'invoice', editId }: Props) {
                     placeholder="Unit price"
                   />
                 </div>
-                <div className="w-32 py-2.5 text-right font-medium text-gray-700">
-                  {formatCurrency(item.amount, currency)}
+                {/* Amount & Delete - Full row on mobile (flex), spans 2 on desktop */}
+                <div className="col-span-12 md:col-span-2 flex items-center justify-between md:justify-end gap-2 pt-1 md:pt-2">
+                  <span className="md:hidden text-sm text-gray-500">Amount:</span>
+                  <div className="font-medium text-gray-700">
+                    {formatCurrency(item.amount, currency)}
+                  </div>
+                  <button
+                    onClick={() => removeItem(item.id)}
+                    disabled={items.length === 1}
+                    className="p-2 text-gray-400 hover:text-red-600 disabled:opacity-30"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
-                <button
-                  onClick={() => removeItem(item.id)}
-                  disabled={items.length === 1}
-                  className="p-2 text-gray-400 hover:text-red-600 disabled:opacity-30"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
               </div>
             ))}
           </div>

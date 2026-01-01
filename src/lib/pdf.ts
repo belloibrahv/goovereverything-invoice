@@ -105,31 +105,57 @@ async function cropLetterheadFooter(img: HTMLImageElement): Promise<string | nul
   }
 }
 
-// Load and prepare letterhead parts
-async function prepareLetterhead(): Promise<{ header: string | null; footer: string | null; full: string | null }> {
+// Load and prepare images (letterhead + signature)
+async function prepareImages(): Promise<{ header: string | null; footer: string | null; full: string | null; signature: string | null }> {
   try {
-    const response = await fetch('/simidak.png');
-    if (!response.ok) return { header: null, footer: null, full: null };
-    const blob = await response.blob();
+    const [letterheadRes, signatureRes] = await Promise.all([
+      fetch('/simidak.png'),
+      fetch('/signature.png')
+    ]);
 
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const full = reader.result as string;
+    let fullHead: string | null = null;
+    let header = null;
+    let footer = null;
+    let signature = null;
+
+    // Process Letterhead
+    if (letterheadRes.ok) {
+      const blob = await letterheadRes.blob();
+      fullHead = await new Promise<string | null>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(blob);
+      });
+
+      if (fullHead) {
         const img = new Image();
-        img.onload = async () => {
-          const header = await cropLetterheadHeader(img);
-          const footer = await cropLetterheadFooter(img);
-          resolve({ header, footer, full });
-        };
-        img.onerror = () => resolve({ header: null, footer: null, full: null });
-        img.src = full;
-      };
-      reader.onerror = () => resolve({ header: null, footer: null, full: null });
-      reader.readAsDataURL(blob);
-    });
+        await new Promise<void>((resolve) => {
+          img.onload = async () => {
+            header = await cropLetterheadHeader(img);
+            footer = await cropLetterheadFooter(img);
+            resolve();
+          };
+          img.onerror = () => resolve();
+          if (fullHead) img.src = fullHead;
+        });
+      }
+    }
+
+    // Process Signature
+    if (signatureRes.ok) {
+      const blob = await signatureRes.blob();
+      signature = await new Promise<string | null>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    return { header, footer, full: fullHead, signature };
   } catch {
-    return { header: null, footer: null, full: null };
+    return { header: null, footer: null, full: null, signature: null };
   }
 }
 
@@ -140,62 +166,28 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
   const margin = 15; // increased margin for cleaner look
   const contentWidth = pageWidth - margin * 2; // 180mm
 
-  // Load letterhead parts
-  const letterhead = await prepareLetterhead();
+  // Load images
+  const images = await prepareImages();
 
   const headerHeight = 45; // mm for header image area
   const footerHeight = 25; // mm for footer image area
   let y = 10;
 
   // --- FULL PAGE BACKGROUND (Header + Watermark + Footer) ---
-  if (letterhead.full) {
-    pdf.addImage(letterhead.full, 'PNG', 0, 0, pageWidth, pageHeight);
+  if (images.full) {
+    pdf.addImage(images.full, 'PNG', 0, 0, pageWidth, pageHeight);
     y = headerHeight + 5;
-  } else if (letterhead.header) {
+  } else if (images.header) {
     // Fallback: Header only if full fails
-    pdf.addImage(letterhead.header, 'PNG', 0, 0, pageWidth, headerHeight);
+    pdf.addImage(images.header, 'PNG', 0, 0, pageWidth, headerHeight);
     y = headerHeight + 5;
   } else {
     y = 20; // fallback if no image
   }
 
-  // --- COMPANY CONTACT INFO (New Request) ---
-  // "appear under the logo or after the document header"
-  // Reg No, Address, Phone, Email
+  // --- COMPANY CONTACT INFO ---
+  // Removed as per user request (redundant with letterhead)
 
-  pdf.setFontSize(8); // Small professional font
-  pdf.setFont(FONTS.bold, 'bold');
-  pdf.setTextColor(...COLORS.primary);
-
-  let contactY = y;
-  // Previously centered at pageWidth / 2, now aligning left at margin
-  const leftX = margin;
-
-  // Address & Contact - grouped for professionalism
-  pdf.setFont(FONTS.regular, 'normal');
-  pdf.setTextColor(...COLORS.textDark);
-
-  // Combine Address, Phone, Email into one or two lines
-  // Line 1: Address
-  if (settings.address) {
-    pdf.text(settings.address, leftX, contactY, { align: 'left' });
-    contactY += 4;
-  }
-
-  // Line 2: Phone | Email
-  const contactLine = [
-    settings.phone,
-    settings.email
-  ].filter(Boolean).join(' | ');
-
-  if (contactLine) {
-    pdf.text(contactLine, leftX, contactY, { align: 'left' });
-    contactY += 8; // Extra spacing after this block
-  } else {
-    contactY += 4;
-  }
-
-  y = contactY; // Update main Y cursor
 
   // --- DOCUMENT HEADER SECTION ---
   // Left: Bill To
@@ -213,7 +205,10 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
   // Right align title to match the professional look or Left?
   // User asked for "extremely professional". Often title is top right.
   // Let's put Title on Top Right, Info below it.
-  pdf.text(title, pageWidth - margin, y - 5, { align: 'right' });
+  // User Request: Move title/info down "close to the table" to avoid designs.
+  // Adding significant offset (e.g. +35mm) to clear the graphical header.
+  const rightColOffset = 35;
+  pdf.text(title, pageWidth - margin, y + rightColOffset, { align: 'right' });
 
 
   // --- BILL TO (LEFT) ---
@@ -251,7 +246,7 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
   // --- DOC INFO (RIGHT) ---
   // We align this block to the right, under the huge title
 
-  let infoY = twoColY + 5;
+  let infoY = twoColY + rightColOffset + 10; // Start info below the shifted title
   const labelX = rightColX + 20;
   const valueX = pageWidth - margin;
 
@@ -325,13 +320,15 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
       pdf.addPage();
       // Re-draw header image on new page? Usually yes for branding consistency, or just small logo.
       // User Request: Remove header from next (page 2 and on) but keep watermark (part of full image).
-      if (letterhead.full) {
-        pdf.addImage(letterhead.full, 'PNG', 0, 0, pageWidth, pageHeight);
+      if (images.full) {
+        pdf.addImage(images.full, 'PNG', 0, 0, pageWidth, pageHeight);
         // Mask the header part to hide the logo, but keep watermark/footer
+        // The header graphics extend deeper than expected.
+        // Using 120mm to be absolutely safe and cover all top graphics.
         pdf.setFillColor(255, 255, 255);
-        pdf.rect(0, 0, pageWidth, headerHeight, 'F');
+        pdf.rect(0, 0, pageWidth, 120, 'F');
         y = 20; // Start content higher since no header
-      } else if (letterhead.header) {
+      } else if (images.header) {
         // If only header exists (fallback), do NOT draw it on page 2+ as per request
         y = 20;
       } else {
@@ -434,13 +431,13 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
   // Ensure we don't hit footer
   if (y + 40 > pageHeight - footerHeight) {
     pdf.addPage();
-    if (letterhead.full) {
-      pdf.addImage(letterhead.full, 'PNG', 0, 0, pageWidth, pageHeight);
+    if (images.full) {
+      pdf.addImage(images.full, 'PNG', 0, 0, pageWidth, pageHeight);
       // Mask the header part
       pdf.setFillColor(255, 255, 255);
-      pdf.rect(0, 0, pageWidth, headerHeight, 'F');
+      pdf.rect(0, 0, pageWidth, 120, 'F'); // Increased to match items loop
       y = 20;
-    } else if (letterhead.header) {
+    } else if (images.header) {
       // Don't draw header on new page
       y = 20;
     } else {
@@ -509,13 +506,58 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
     pdf.setTextColor(...COLORS.textGray);
     const splitNotes = pdf.splitTextToSize(doc.notes, contentWidth);
     pdf.text(splitNotes, margin, y);
+    y += (splitNotes.length * 4); // update y based on lines
   }
+
+
+  // --- SIGNATURE BLOCK ---
+  // Ensure we don't hit footer with the signature
+  // We need about 40-50mm for the signature block
+  if (y + 50 > pageHeight - footerHeight) {
+    pdf.addPage();
+    if (images.full) {
+      pdf.addImage(images.full, 'PNG', 0, 0, pageWidth, pageHeight);
+      pdf.setFillColor(255, 255, 255);
+      pdf.rect(0, 0, pageWidth, 120, 'F');
+      y = 20;
+    } else {
+      y = 20;
+    }
+  }
+
+  y += 10; // Spacing before signature
+
+  if (images.signature) {
+    // Draw signature image
+    // Assume signature aspect ratio is roughly 2:1 or similar. Fixed width 40mm.
+    const sigW = 40;
+    const sigH = 20;
+    pdf.addImage(images.signature, 'PNG', margin, y, sigW, sigH);
+    y += sigH;
+  } else {
+    y += 20; // Space for manual signature if image fails
+  }
+
+  // Underline
+  const lineW = 50;
+  pdf.setDrawColor(...COLORS.textDark); // Black line
+  pdf.setLineWidth(0.5);
+  pdf.line(margin, y, margin + lineW, y);
+  y += 5;
+
+  // Title
+  pdf.setFontSize(10);
+  pdf.setFont(FONTS.bold, 'bold');
+  pdf.setTextColor(...COLORS.textDark);
+  // Center text relative to the line
+  // line goes from margin to margin+lineW. Center is margin + lineW/2.
+  pdf.text('Technical Director', margin + (lineW / 2), y, { align: 'center' });
 
 
   // --- FOOTER IMAGE ---
   // Always at bottom. If we have full background, it already includes footer.
-  if (!letterhead.full && letterhead.footer) {
-    pdf.addImage(letterhead.footer, 'PNG', 0, pageHeight - footerHeight, pageWidth, footerHeight);
+  if (!images.full && images.footer) {
+    pdf.addImage(images.footer, 'PNG', 0, pageHeight - footerHeight, pageWidth, footerHeight);
   }
 
   return pdf;
