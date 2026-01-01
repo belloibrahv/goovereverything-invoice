@@ -106,29 +106,30 @@ async function cropLetterheadFooter(img: HTMLImageElement): Promise<string | nul
 }
 
 // Load and prepare letterhead parts
-async function prepareLetterhead(): Promise<{ header: string | null; footer: string | null }> {
+async function prepareLetterhead(): Promise<{ header: string | null; footer: string | null; full: string | null }> {
   try {
     const response = await fetch('/simidak.png');
-    if (!response.ok) return { header: null, footer: null };
+    if (!response.ok) return { header: null, footer: null, full: null };
     const blob = await response.blob();
 
     return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onloadend = () => {
+        const full = reader.result as string;
         const img = new Image();
         img.onload = async () => {
           const header = await cropLetterheadHeader(img);
           const footer = await cropLetterheadFooter(img);
-          resolve({ header, footer });
+          resolve({ header, footer, full });
         };
-        img.onerror = () => resolve({ header: null, footer: null });
-        img.src = reader.result as string;
+        img.onerror = () => resolve({ header: null, footer: null, full: null });
+        img.src = full;
       };
-      reader.onerror = () => resolve({ header: null, footer: null });
+      reader.onerror = () => resolve({ header: null, footer: null, full: null });
       reader.readAsDataURL(blob);
     });
   } catch {
-    return { header: null, footer: null };
+    return { header: null, footer: null, full: null };
   }
 }
 
@@ -146,9 +147,12 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
   const footerHeight = 25; // mm for footer image area
   let y = 10;
 
-  // --- HEADER IMAGE ---
-  // We place the header image at top 0,0
-  if (letterhead.header) {
+  // --- FULL PAGE BACKGROUND (Header + Watermark + Footer) ---
+  if (letterhead.full) {
+    pdf.addImage(letterhead.full, 'PNG', 0, 0, pageWidth, pageHeight);
+    y = headerHeight + 5;
+  } else if (letterhead.header) {
+    // Fallback: Header only if full fails
     pdf.addImage(letterhead.header, 'PNG', 0, 0, pageWidth, headerHeight);
     y = headerHeight + 5;
   } else {
@@ -321,7 +325,10 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
       pdf.addPage();
       // Re-draw header image on new page? Usually yes for branding consistency, or just small logo.
       // Let's re-draw full header for consistency as per user request "letter header brand styles".
-      if (letterhead.header) {
+      if (letterhead.full) {
+        pdf.addImage(letterhead.full, 'PNG', 0, 0, pageWidth, pageHeight);
+        y = headerHeight + 10;
+      } else if (letterhead.header) {
         pdf.addImage(letterhead.header, 'PNG', 0, 0, pageWidth, headerHeight);
         y = headerHeight + 10;
       } else {
@@ -424,7 +431,10 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
   // Ensure we don't hit footer
   if (y + 40 > pageHeight - footerHeight) {
     pdf.addPage();
-    if (letterhead.header) {
+    if (letterhead.full) {
+      pdf.addImage(letterhead.full, 'PNG', 0, 0, pageWidth, pageHeight);
+      y = headerHeight + 10;
+    } else if (letterhead.header) {
       pdf.addImage(letterhead.header, 'PNG', 0, 0, pageWidth, headerHeight);
       y = headerHeight + 10;
     } else {
@@ -497,8 +507,8 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
 
 
   // --- FOOTER IMAGE ---
-  // Always at bottom
-  if (letterhead.footer) {
+  // Always at bottom. If we have full background, it already includes footer.
+  if (!letterhead.full && letterhead.footer) {
     pdf.addImage(letterhead.footer, 'PNG', 0, pageHeight - footerHeight, pageWidth, footerHeight);
   }
 
