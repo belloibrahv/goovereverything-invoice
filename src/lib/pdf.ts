@@ -533,12 +533,12 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
     const sigW = 40;
     const sigH = 20;
     pdf.addImage(images.signature, 'PNG', margin, y, sigW, sigH);
-    y += sigH;
+    y += sigH - 8; // Aggressive reduction to account for whitespace in signature image (makes signature rest directly on line)
   } else {
     y += 20; // Space for manual signature if image fails
   }
 
-  // Underline
+  // Underline - drawn at the exact bottom of signature (signature stands on the line)
   const lineW = 50;
   pdf.setDrawColor(...COLORS.textDark); // Black line
   pdf.setLineWidth(0.5);
