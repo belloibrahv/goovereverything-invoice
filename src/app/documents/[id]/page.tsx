@@ -97,7 +97,7 @@ export default function DocumentViewPage() {
           {/* Company Header */}
           <div className="flex flex-col md:flex-row md:justify-between gap-4 pb-6 border-b">
             <div>
-              <h2 className="text-2xl font-bold text-red-600">{settings?.name || 'GOOVEREVERYTHING'}</h2>
+              <h2 className="text-2xl font-bold text-red-600">{settings?.name || 'SAMIDAK'}</h2>
               <p className="text-sm text-gray-600">{settings?.address}</p>
               <p className="text-sm text-gray-600">Phone: {settings?.phone}</p>
               <p className="text-sm text-gray-600">Email: {settings?.email}</p>

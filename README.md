@@ -1,6 +1,6 @@
-# GOOVEREVERYTHING Invoice System
+# SAMIDAK Invoice System
 
-A professional offline-first invoice, quotation, and waybill management system built for engineering services.
+A professional offline-first invoice, quotation, and waybill management system.
 
 ## Features
 
@@ -32,7 +32,7 @@ npm start
 ## Deploy to Vercel
 
 ### Option 1: One-Click Deploy
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/YOUR_USERNAME/goovereverything-invoice)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/YOUR_USERNAME/samidak-invoice)
 
 ### Option 2: CLI Deploy
 ```bash

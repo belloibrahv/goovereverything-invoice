@@ -18,14 +18,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // Show loading state until mounted to prevent hydration issues
   if (!mounted) {
     return (
-      <div className="flex min-h-screen bg-gray-50 items-center justify-center">
-        <div className="animate-pulse text-gray-400">Loading...</div>
+      <div className="flex min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-red-600 to-red-700 animate-pulse" />
+          <p className="text-gray-500 font-medium">Loading SAMIDAK...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0">
         <Header />

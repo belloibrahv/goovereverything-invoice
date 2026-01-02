@@ -1,7 +1,7 @@
 {
-  "name": "GOOVEREVERYTHING Invoice System",
-  "short_name": "GOE Invoice",
-  "description": "Professional invoice, quotation, and waybill management system for engineering services",
+  "name": "SAMIDAK Invoice System",
+  "short_name": "SAMIDAK Invoice",
+  "description": "Professional invoice, quotation, and waybill management system",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

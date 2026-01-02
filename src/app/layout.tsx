@@ -6,13 +6,13 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'GOOVEREVERYTHING - Invoice System',
-  description: 'Professional invoice, quotation, and waybill management for engineering services',
+  title: 'SAMIDAK - Invoice System',
+  description: 'Professional invoice, quotation, and waybill management system',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'GOE Invoice',
+    title: 'SAMIDAK Invoice',
   },
 };
 

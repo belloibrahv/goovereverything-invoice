@@ -47,7 +47,7 @@ function migrateSettings(settings: any): CompanySettings {
   // Check for placeholders or old defaults that need updating
   const isPlaceholderPhone = settings.phone === '+234 XXX XXX XXXX' || !settings.phone;
   const isOldEmail = settings.email === 'info@goovereverything.com' || settings.email === 'info@samidak.com' || !settings.email;
-  const isOldName = settings.name === 'GOOVEREVERYTHING' || !settings.name;
+  const isOldName = settings.name === 'GOOVEREVERYTHING' || settings.name === 'SAMIDAK' || !settings.name;
 
   return {
     id: settings.id,
