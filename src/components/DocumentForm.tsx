@@ -166,8 +166,8 @@ export function DocumentForm({ type = 'invoice', editId }: Props) {
               onClick={() => setDocType(t)}
               disabled={!!editId}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${docType === t
-                  ? 'bg-red-600 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                ? 'bg-red-600 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 } ${editId ? 'cursor-not-allowed' : ''}`}
             >
               {t.charAt(0).toUpperCase() + t.slice(1)}
@@ -253,9 +253,9 @@ export function DocumentForm({ type = 'invoice', editId }: Props) {
           <label className="label">Items</label>
           <div className="space-y-3">
             {items.map((item, idx) => (
-              <div key={item.id} className="grid grid-cols-12 gap-3 p-3 bg-gray-50 rounded-lg items-start">
-                {/* Description - Full width on mobile, spans 6 on desktop */}
-                <div className="col-span-12 md:col-span-6">
+              <div key={item.id} className="grid grid-cols-12 gap-2 md:gap-3 p-3 bg-gray-50 rounded-lg items-start">
+                {/* Description - Full width on mobile, spans 5 on desktop */}
+                <div className="col-span-12 md:col-span-5">
                   <input
                     type="text"
                     className="input"
@@ -287,12 +287,14 @@ export function DocumentForm({ type = 'invoice', editId }: Props) {
                     placeholder="Unit price"
                   />
                 </div>
-                {/* Amount & Delete - Full row on mobile (flex), spans 2 on desktop */}
-                <div className="col-span-12 md:col-span-2 flex items-center justify-between md:justify-end gap-2 pt-1 md:pt-2">
-                  <span className="md:hidden text-sm text-gray-500">Amount:</span>
-                  <div className="font-medium text-gray-700">
+                {/* Amount - Hidden on mobile, spans 2 on desktop */}
+                <div className="hidden md:flex md:col-span-2 items-center justify-end pt-2">
+                  <div className="font-medium text-gray-700 text-right break-words">
                     {formatCurrency(item.amount, currency)}
                   </div>
+                </div>
+                {/* Delete button - Hidden on mobile, spans 1 on desktop */}
+                <div className="hidden md:flex md:col-span-1 items-center justify-center pt-2">
                   <button
                     onClick={() => removeItem(item.id)}
                     disabled={items.length === 1}
@@ -300,6 +302,22 @@ export function DocumentForm({ type = 'invoice', editId }: Props) {
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
+                </div>
+                {/* Mobile-only Amount & Delete row */}
+                <div className="col-span-12 md:hidden flex items-center justify-between gap-2 pt-1 border-t border-gray-200 mt-2">
+                  <span className="text-sm text-gray-500">Amount:</span>
+                  <div className="flex items-center gap-2">
+                    <div className="font-medium text-gray-700">
+                      {formatCurrency(item.amount, currency)}
+                    </div>
+                    <button
+                      onClick={() => removeItem(item.id)}
+                      disabled={items.length === 1}
+                      className="p-2 text-gray-400 hover:text-red-600 disabled:opacity-30"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
