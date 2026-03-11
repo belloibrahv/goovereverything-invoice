@@ -154,12 +154,16 @@ export default function DocumentViewPage() {
                 <span className="text-gray-600">Discount ({doc.discountRate || 0}%)</span>
                 <span className="text-green-600">-{formatCurrency(doc.discount || 0, doc.currency)}</span>
               </div>
+              <div className="flex justify-between font-semibold border-t pt-2">
+                <span>Total</span>
+                <span>{formatCurrency((doc.subtotal || 0) - (doc.discount || 0), doc.currency)}</span>
+              </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Tax ({doc.taxRate}%)</span>
+                <span className="text-gray-600">VAT ({doc.taxRate}%)</span>
                 <span>{formatCurrency(doc.tax, doc.currency)}</span>
               </div>
               <div className="flex justify-between text-lg font-bold border-t pt-2">
-                <span>Total</span>
+                <span>Grand Total</span>
                 <span className="text-red-600">{formatCurrency(doc.total, doc.currency)}</span>
               </div>
             </div>

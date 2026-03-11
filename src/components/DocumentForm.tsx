@@ -370,12 +370,16 @@ export function DocumentForm({ type = 'invoice', editId }: Props) {
               <span className="text-gray-600">Discount ({discountRate}%)</span>
               <span className="font-medium text-green-600">-{formatCurrency(discount, currency)}</span>
             </div>
+            <div className="flex justify-between font-semibold border-t pt-2">
+              <span>Total</span>
+              <span>{formatCurrency(totals.discountedAmount, currency)}</span>
+            </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Tax ({taxRate}%)</span>
+              <span className="text-gray-600">VAT ({taxRate}%)</span>
               <span className="font-medium">{formatCurrency(tax, currency)}</span>
             </div>
-            <div className="flex justify-between text-lg font-semibold border-t pt-2">
-              <span>Total</span>
+            <div className="flex justify-between text-lg font-bold border-t pt-2">
+              <span>Grand Total</span>
               <span className="text-red-600">{formatCurrency(total, currency)}</span>
             </div>
           </div>

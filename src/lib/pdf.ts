@@ -411,9 +411,22 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
   pdf.text(`-${formatAmount(doc.discount, doc.currency)}`, pageWidth - margin, y, { align: 'right' });
   y += 6;
 
-  // Tax
+  // Total (after discount) - Highlighted
+  pdf.setFillColor(245, 245, 245); // Light gray background
+  pdf.rect(totalsX - 5, y - 6, totalsW + 5, 10, 'F');
+  
+  pdf.setFontSize(10);
+  pdf.setFont(FONTS.bold, 'bold');
+  pdf.setTextColor(...COLORS.textDark);
+  pdf.text('Total:', totalsX, y);
+  pdf.text(formatAmount(doc.subtotal - doc.discount, doc.currency), pageWidth - margin, y, { align: 'right' });
+  y += 8;
+
+  // VAT
+  pdf.setFontSize(9);
+  pdf.setFont(FONTS.regular, 'normal');
   pdf.setTextColor(...COLORS.textGray);
-  pdf.text(`Tax (${doc.taxRate}%):`, totalsX, y);
+  pdf.text(`VAT (${doc.taxRate}%):`, totalsX, y);
   pdf.setTextColor(...COLORS.textDark);
   pdf.text(formatAmount(doc.tax, doc.currency), pageWidth - margin, y, { align: 'right' });
   y += 8;
@@ -427,7 +440,7 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
   pdf.setFontSize(11);
   pdf.setFont(FONTS.bold, 'bold');
   pdf.setTextColor(...COLORS.primary);
-  pdf.text('TOTAL:', totalsX, y);
+  pdf.text('GRAND TOTAL:', totalsX, y);
   pdf.text(formatAmount(doc.total, doc.currency), pageWidth - margin, y, { align: 'right' });
 
   y += 15;
