@@ -26,6 +26,8 @@ export interface Document {
   customer: Customer;
   items: LineItem[];
   subtotal: number;
+  discount: number;
+  discountRate: number;
   tax: number;
   taxRate: number;
   total: number;
@@ -55,6 +57,7 @@ export interface CompanySettings {
   bankAccounts: BankAccount[];
   logo?: string;
   taxRate: number;
+  discountRate: number; // Default discount rate
   defaultCurrency: Currency;
 }
 

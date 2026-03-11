@@ -404,6 +404,13 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
   pdf.text(formatAmount(doc.subtotal, doc.currency), pageWidth - margin, y, { align: 'right' });
   y += 6;
 
+  // Discount
+  pdf.setTextColor(...COLORS.textGray);
+  pdf.text(`Discount (${doc.discountRate}%):`, totalsX, y);
+  pdf.setTextColor(34, 139, 34); // Green color for discount
+  pdf.text(`-${formatAmount(doc.discount, doc.currency)}`, pageWidth - margin, y, { align: 'right' });
+  y += 6;
+
   // Tax
   pdf.setTextColor(...COLORS.textGray);
   pdf.text(`Tax (${doc.taxRate}%):`, totalsX, y);
@@ -447,7 +454,7 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
 
   // Payment Info - Styled Box
   const bankAccounts = settings.bankAccounts || [];
-  if (doc.type === 'invoice' && bankAccounts.length > 0) {
+  if ((doc.type === 'invoice' || doc.type === 'quotation') && bankAccounts.length > 0) {
     pdf.setFontSize(9);
     pdf.setFont(FONTS.bold, 'bold');
     pdf.setTextColor(...COLORS.primary);

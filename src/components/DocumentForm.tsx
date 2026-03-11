@@ -10,6 +10,7 @@ import { db, generateSerialNumber } from '@/lib/db';
 import { useAppStore } from '@/lib/store';
 import { formatCurrency } from '@/lib/utils';
 import { generatePDF, downloadPDF, printPDF } from '@/lib/pdf';
+import { calculateLineTotal, calculateDocumentTotals } from '@/lib/money';
 
 interface Props {
   type?: DocumentType;
@@ -40,7 +41,15 @@ export function DocumentForm({ type = 'invoice', editId }: Props) {
   const [items, setItems] = useState<LineItem[]>([emptyItem()]);
   const [notes, setNotes] = useState('');
   const [taxRate, setTaxRate] = useState(settings?.taxRate || 7.5);
+  const [discountRate, setDiscountRate] = useState(settings?.discountRate || 5); // Use default from settings
   const [existingDoc, setExistingDoc] = useState<Document | null>(null);
+
+  // Update discount rate when settings change
+  useEffect(() => {
+    if (settings?.discountRate !== undefined && !existingDoc) {
+      setDiscountRate(settings.discountRate);
+    }
+  }, [settings?.discountRate, existingDoc]);
 
   useEffect(() => {
     if (editId) {
@@ -50,9 +59,15 @@ export function DocumentForm({ type = 'invoice', editId }: Props) {
           setDocType(doc.type);
           setCurrency(doc.currency);
           setCustomer(doc.customer);
-          setItems(doc.items);
+          // Recalculate line item amounts with precise calculations
+          const recalculatedItems = doc.items.map(item => ({
+            ...item,
+            amount: calculateLineTotal(item.quantity, item.unitPrice)
+          }));
+          setItems(recalculatedItems);
           setNotes(doc.notes || '');
           setTaxRate(doc.taxRate);
+          setDiscountRate(doc.discountRate || 5);
         }
       });
     }
@@ -63,7 +78,8 @@ export function DocumentForm({ type = 'invoice', editId }: Props) {
       prev.map((item) => {
         if (item.id !== id) return item;
         const updated = { ...item, [field]: value };
-        updated.amount = updated.quantity * updated.unitPrice;
+        // Use precise money calculation for line total
+        updated.amount = calculateLineTotal(updated.quantity, updated.unitPrice);
         return updated;
       })
     );
@@ -72,9 +88,9 @@ export function DocumentForm({ type = 'invoice', editId }: Props) {
   const addItem = () => setItems((prev) => [...prev, emptyItem()]);
   const removeItem = (id: string) => setItems((prev) => prev.filter((i) => i.id !== id));
 
-  const subtotal = items.reduce((sum, item) => sum + item.amount, 0);
-  const tax = subtotal * (taxRate / 100);
-  const total = subtotal + tax;
+  // Calculate totals with precise money arithmetic
+  const totals = calculateDocumentTotals(items, discountRate, taxRate);
+  const { subtotal, discount, tax, total } = totals;
 
   const handleSave = async (andPrint = false) => {
     if (!customer.name.trim()) {
@@ -96,6 +112,8 @@ export function DocumentForm({ type = 'invoice', editId }: Props) {
         customer,
         items: items.filter((i) => i.description.trim()),
         subtotal,
+        discount,
+        discountRate,
         tax,
         taxRate,
         total,
@@ -142,6 +160,8 @@ export function DocumentForm({ type = 'invoice', editId }: Props) {
       customer,
       items: items.filter((i) => i.description.trim()),
       subtotal,
+      discount,
+      discountRate,
       tax,
       taxRate,
       total,
@@ -219,7 +239,7 @@ export function DocumentForm({ type = 'invoice', editId }: Props) {
           </div>
         </div>
 
-        {/* Currency & Tax */}
+        {/* Currency, Tax & Discount */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div>
             <label className="label">Currency</label>
@@ -233,6 +253,18 @@ export function DocumentForm({ type = 'invoice', editId }: Props) {
               <option value="EUR">EUR (€)</option>
               <option value="GBP">GBP (£)</option>
             </select>
+          </div>
+          <div>
+            <label className="label">Discount Rate (%)</label>
+            <input
+              type="number"
+              className="input"
+              value={discountRate}
+              onChange={(e) => setDiscountRate(parseFloat(e.target.value) || 0)}
+              min="0"
+              max="100"
+              step="0.5"
+            />
           </div>
           <div>
             <label className="label">Tax Rate (%)</label>
@@ -333,6 +365,10 @@ export function DocumentForm({ type = 'invoice', editId }: Props) {
             <div className="flex justify-between">
               <span className="text-gray-600">Subtotal</span>
               <span className="font-medium">{formatCurrency(subtotal, currency)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">Discount ({discountRate}%)</span>
+              <span className="font-medium text-green-600">-{formatCurrency(discount, currency)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">Tax ({taxRate}%)</span>

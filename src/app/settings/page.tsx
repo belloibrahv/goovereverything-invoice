@@ -26,6 +26,7 @@ export default function SettingsPage() {
       const needsMigration = !settings.bankAccounts || settings.bankAccounts.length === 0;
       const migratedSettings: CompanySettings = {
         ...settings,
+        discountRate: settings.discountRate ?? 5, // Add default discount rate if missing
         bankAccounts: settings.bankAccounts && settings.bankAccounts.length > 0
           ? settings.bankAccounts
           : [
@@ -40,7 +41,7 @@ export default function SettingsPage() {
       setForm(migratedSettings);
 
       // Update store with migrated settings
-      if (needsMigration) {
+      if (needsMigration || settings.discountRate === undefined) {
         setSettings(migratedSettings);
       }
     } else {
@@ -247,7 +248,7 @@ export default function SettingsPage() {
 
           <h2 className="text-lg font-semibold border-b pb-2 pt-4">Defaults</h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="label">Default Currency</label>
               <select
@@ -260,6 +261,20 @@ export default function SettingsPage() {
                 <option value="EUR">Euro (€)</option>
                 <option value="GBP">British Pound (£)</option>
               </select>
+            </div>
+
+            <div>
+              <label className="label">Default Discount Rate (%)</label>
+              <input
+                type="number"
+                className="input"
+                value={form.discountRate || 5}
+                onChange={(e) => setForm({ ...form, discountRate: parseFloat(e.target.value) || 0 })}
+                min="0"
+                max="100"
+                step="0.5"
+              />
+              <p className="text-xs text-gray-500 mt-1">Default discount applied to new documents</p>
             </div>
 
             <div>
@@ -288,7 +303,7 @@ export default function SettingsPage() {
           <h2 className="text-lg font-semibold mb-2">Offline Storage</h2>
           <p className="text-sm text-gray-600">
             All your data is stored locally on this device using IndexedDB. Your invoices, quotations,
-            and waybills are available even when you're offline.
+            and waybills are available even when you&apos;re offline.
           </p>
         </div>
       </div>

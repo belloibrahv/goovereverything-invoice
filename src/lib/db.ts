@@ -17,6 +17,36 @@ db.version(1).stores({
 
 export { db };
 
+// Migrate documents to include discount fields
+async function migrateDocuments() {
+  try {
+    const documents = await db.documents.toArray();
+    const documentsToUpdate = documents.filter(doc => 
+      doc.discount === undefined || doc.discountRate === undefined
+    );
+
+    if (documentsToUpdate.length > 0) {
+      for (const doc of documentsToUpdate) {
+        // Add default discount fields for existing documents
+        const updatedDoc = {
+          ...doc,
+          discount: doc.discount || 0,
+          discountRate: doc.discountRate || 5,
+        };
+        await db.documents.put(updatedDoc);
+      }
+      console.log(`Migrated ${documentsToUpdate.length} documents with discount fields`);
+    }
+  } catch (error) {
+    console.error('Failed to migrate documents:', error);
+  }
+}
+
+// Initialize migration when database is opened
+db.on('ready', () => {
+  return migrateDocuments();
+});
+
 // Migrate old settings format to new format with bankAccounts array
 function migrateSettings(settings: any): CompanySettings {
   // If already has bankAccounts array, return as is
@@ -58,6 +88,7 @@ function migrateSettings(settings: any): CompanySettings {
     email: isOldEmail ? 'akeidsam69@gmail.com' : settings.email,
     bankAccounts,
     taxRate: settings.taxRate ?? 7.5,
+    discountRate: settings.discountRate ?? 5, // Default 5% discount
     defaultCurrency: settings.defaultCurrency || 'NGN',
   };
 }
@@ -100,6 +131,7 @@ export async function initializeSettings(): Promise<CompanySettings> {
         },
       ],
       taxRate: 7.5,
+      discountRate: 5, // Default 5% discount
       defaultCurrency: 'NGN',
     };
 
@@ -121,6 +153,7 @@ export async function initializeSettings(): Promise<CompanySettings> {
         },
       ],
       taxRate: 7.5,
+      discountRate: 5, // Default 5% discount
       defaultCurrency: 'NGN',
     };
   }

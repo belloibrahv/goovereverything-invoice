@@ -151,6 +151,10 @@ export default function DocumentViewPage() {
                 <span>{formatCurrency(doc.subtotal, doc.currency)}</span>
               </div>
               <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Discount ({doc.discountRate || 0}%)</span>
+                <span className="text-green-600">-{formatCurrency(doc.discount || 0, doc.currency)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Tax ({doc.taxRate}%)</span>
                 <span>{formatCurrency(doc.tax, doc.currency)}</span>
               </div>
@@ -162,7 +166,7 @@ export default function DocumentViewPage() {
           </div>
 
           {/* Bank Details */}
-          {doc.type === 'invoice' && settings?.bankAccounts && settings.bankAccounts.length > 0 && (
+          {(doc.type === 'invoice' || doc.type === 'quotation') && settings?.bankAccounts && settings.bankAccounts.length > 0 && (
             <div className="pt-4 border-t">
               <p className="font-medium text-gray-800 mb-3">Payment Information:</p>
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-3">
