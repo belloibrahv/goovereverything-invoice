@@ -1,8 +1,9 @@
 {
+  "id": "/",
   "name": "SAMIDAK Invoice System",
   "short_name": "SAMIDAK",
-  "description": "Professional invoice, quotation, waybill, email templates, and company profile system",
-  "start_url": "/",
+  "description": "Professional invoice, quotation, waybill, email templates, and company profile system. Install on your phone for offline use.",
+  "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui", "browser"],

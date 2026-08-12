@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Save, Plus, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { AppShell } from '@/components/AppShell';
+import { InstallAppCard } from '@/components/InstallAppCard';
 import { db, initializeSettings } from '@/lib/db';
 import { useAppStore } from '@/lib/store';
 import type { CompanySettings, Currency, BankAccount } from '@/types';
@@ -333,6 +334,8 @@ export default function SettingsPage() {
             and waybills are available even when you&apos;re offline.
           </p>
         </div>
+
+        <InstallAppCard />
       </div>
     </AppShell>
   );

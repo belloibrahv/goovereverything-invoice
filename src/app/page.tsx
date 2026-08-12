@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { FileText, FilePlus, Receipt, Truck, TrendingUp } from 'lucide-react';
 import { AppShell } from '@/components/AppShell';
+import { InstallAppCard } from '@/components/InstallAppCard';
 import { db } from '@/lib/db';
 import { formatCurrency } from '@/lib/utils';
 
@@ -46,6 +47,8 @@ export default function Dashboard() {
             <FilePlus className="w-4 h-4" /> New Document
           </Link>
         </div>
+
+        <InstallAppCard />
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

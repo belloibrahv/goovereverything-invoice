@@ -1,36 +1,23 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Menu, Wifi, WifiOff, Download } from 'lucide-react';
+import { useState } from 'react';
+import { Menu, Wifi, WifiOff, Download, Share, PlusSquare, X } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
-
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
-}
+import { usePWAInstall } from '@/hooks/usePWAInstall';
 
 export function Header() {
   const { setSidebarOpen } = useAppStore();
   const isOnline = useOnlineStatus();
-  const [mounted, setMounted] = useState(false);
-  const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEvent | null>(null);
-
-  useEffect(() => {
-    setMounted(true);
-    const handler = (e: Event) => {
-      e.preventDefault();
-      setInstallEvent(e as BeforeInstallPromptEvent);
-    };
-    window.addEventListener('beforeinstallprompt', handler);
-    return () => window.removeEventListener('beforeinstallprompt', handler);
-  }, []);
+  const { mounted, canInstall, canPrompt, ios, promptInstall, standalone } = usePWAInstall();
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const handleInstall = async () => {
-    if (!installEvent) return;
-    await installEvent.prompt();
-    await installEvent.userChoice;
-    setInstallEvent(null);
+    if (canPrompt) {
+      await promptInstall();
+      return;
+    }
+    setHelpOpen(true);
   };
 
   return (
@@ -49,7 +36,7 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          {mounted && installEvent && (
+          {mounted && canInstall && (
             <button
               type="button"
               onClick={handleInstall}
@@ -83,6 +70,41 @@ export function Header() {
           )}
         </div>
       </div>
+
+      {helpOpen && !standalone && (
+        <div className="border-t border-gray-100 bg-white px-3 sm:px-4 py-3">
+          <div className="flex items-start justify-between gap-2">
+            <div className="text-xs text-gray-700 space-y-2">
+              <p className="font-semibold text-gray-900 text-sm">Add SAMIDAK to your home screen</p>
+              {ios ? (
+                <ol className="space-y-1.5 list-none">
+                  <li className="flex gap-2">
+                    <Share className="w-4 h-4 text-brand-red shrink-0" />
+                    Tap Share in Safari
+                  </li>
+                  <li className="flex gap-2">
+                    <PlusSquare className="w-4 h-4 text-brand-red shrink-0" />
+                    Choose “Add to Home Screen”
+                  </li>
+                </ol>
+              ) : (
+                <ol className="list-decimal list-inside space-y-1">
+                  <li>Open this site in Chrome on your phone</li>
+                  <li>Menu (⋮) → Install app / Add to Home screen</li>
+                </ol>
+              )}
+            </div>
+            <button
+              type="button"
+              className="p-1.5 text-gray-400 hover:text-gray-700"
+              onClick={() => setHelpOpen(false)}
+              aria-label="Close"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </header>
   );
 }
