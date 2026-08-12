@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { FileText, FilePlus, Users, Settings, Home, X, Truck, Receipt } from 'lucide-react';
+import { FileText, FilePlus, Users, Settings, Home, X, Truck, Receipt, Mail, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/lib/store';
 
@@ -14,6 +14,8 @@ const navigation = [
   { name: 'Quotations', href: '/documents?type=quotation', icon: FileText },
   { name: 'Waybills', href: '/documents?type=waybill', icon: Truck },
   { name: 'Customers', href: '/customers', icon: Users },
+  { name: 'Email Templates', href: '/emails', icon: Mail },
+  { name: 'Company Profile', href: '/profile', icon: BookOpen },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
@@ -77,7 +79,7 @@ export function Sidebar() {
                 className={cn(
                   'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200',
                   isActive
-                    ? 'bg-gradient-to-r from-red-50 to-red-100 text-red-700 border-l-4 border-red-600 shadow-sm'
+                    ? 'bg-gradient-to-r from-red-50 to-red-100 text-brand-red border-l-4 border-brand-red shadow-sm'
                     : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                 )}
               >

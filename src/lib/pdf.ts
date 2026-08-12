@@ -5,12 +5,12 @@ import { formatDate } from './utils';
 // Brand Colors & Constants
 // "Samidak" logo seems to have a deep red/maroon and black/grey.
 const COLORS = {
-  primary: [153, 51, 51] as [number, number, number], // Deep Maroon/Red
+  primary: [161, 4, 9] as [number, number, number], // Brand red #a10409
   secondary: [44, 62, 80] as [number, number, number], // Dark Slate Blue (Professional dark)
   textDark: [33, 33, 33] as [number, number, number], // Almost Black
   textGray: [100, 100, 100] as [number, number, number], // Medium Gray
   textLight: [150, 150, 150] as [number, number, number], // Light Gray
-  tableHeaderBg: [153, 51, 51] as [number, number, number], // Primary
+  tableHeaderBg: [161, 4, 9] as [number, number, number], // Brand
   tableHeaderTx: [255, 255, 255] as [number, number, number], // White
   tableRowOdd: [255, 255, 255] as [number, number, number], // White
   tableRowEven: [249, 249, 249] as [number, number, number], // very light gray

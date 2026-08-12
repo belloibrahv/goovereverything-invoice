@@ -6,12 +6,16 @@
   :root {
     --background: 255 255 255;
     --foreground: 31 41 55;
-    --primary: 153 51 51;
-    --primary-light: 220 38 38;
+    --primary: 161 4 9;
+    --primary-light: 196 26 32;
+    --brand-red: #a10409;
+    --brand-red-dark: #7a0307;
+    --font-sans: 'Segoe UI', system-ui, sans-serif;
+    --font-display: 'Georgia', 'Times New Roman', serif;
   }
 
   body {
-    @apply bg-gradient-to-br from-gray-50 via-white to-gray-50 text-gray-800 antialiased;
+    @apply bg-gradient-to-br from-stone-50 via-white to-neutral-50 text-gray-800 antialiased;
   }
 
   html {
@@ -25,7 +29,12 @@
   }
 
   .btn-primary {
-    @apply btn bg-gradient-to-r from-red-600 to-red-700 text-white hover:from-red-700 hover:to-red-800 focus:ring-red-500 shadow-red-200/50;
+    @apply btn text-white focus:ring-[#a10409] shadow-red-200/50;
+    background-image: linear-gradient(to right, #a10409, #7a0307);
+  }
+
+  .btn-primary:hover {
+    background-image: linear-gradient(to right, #7a0307, #a10409);
   }
 
   .btn-secondary {

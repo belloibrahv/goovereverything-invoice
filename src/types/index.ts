@@ -69,3 +69,24 @@ export interface SerialCounter {
   currentNumber: number;
   year: number;
 }
+
+export interface ProfileImageSlot {
+  id: string;
+  dataUrl: string;
+  caption?: string;
+  updatedAt: Date;
+}
+
+export interface CompanyProfileContent {
+  id?: number;
+  tagline: string;
+  whoWeAre: string;
+  vision: string;
+  mission: string;
+  heroImage?: string;
+  teamImage?: string;
+  productImages: ProfileImageSlot[];
+  projectImages: ProfileImageSlot[];
+  certImages: ProfileImageSlot[];
+  updatedAt: Date;
+}

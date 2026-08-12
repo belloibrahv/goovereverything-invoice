@@ -1,11 +1,19 @@
 import Dexie, { type EntityTable } from 'dexie';
-import type { Document, Customer, CompanySettings, SerialCounter, BankAccount } from '@/types';
+import type {
+  Document,
+  Customer,
+  CompanySettings,
+  SerialCounter,
+  BankAccount,
+  CompanyProfileContent,
+} from '@/types';
 
 const db = new Dexie('GoovereverythingDB') as Dexie & {
   documents: EntityTable<Document, 'id'>;
   customers: EntityTable<Customer, 'id'>;
   settings: EntityTable<CompanySettings, 'id'>;
   serialCounters: EntityTable<SerialCounter, 'id'>;
+  companyProfile: EntityTable<CompanyProfileContent, 'id'>;
 };
 
 db.version(1).stores({
@@ -13,6 +21,14 @@ db.version(1).stores({
   customers: '++id, name, email, phone',
   settings: '++id',
   serialCounters: '++id, type, year',
+});
+
+db.version(2).stores({
+  documents: '++id, serialNumber, type, status, createdAt',
+  customers: '++id, name, email, phone',
+  settings: '++id',
+  serialCounters: '++id, type, year',
+  companyProfile: '++id',
 });
 
 export { db };
@@ -199,4 +215,40 @@ export async function generateSerialNumber(type: Document['type']): Promise<stri
     const timestamp = Date.now().toString(36).toUpperCase();
     return `${prefix}-${year}-${timestamp}`;
   }
+}
+
+export const DEFAULT_PROFILE_CONTENT: Omit<CompanyProfileContent, 'id'> = {
+  tagline: 'Industrial Engineering Solutions You Can Trust',
+  whoWeAre:
+    'SAMIDAK Technical and Allied Services Nigeria Limited is an industrial engineering company committed to delivering reliable, efficient, and professional engineering solutions. We help businesses keep equipment running, reduce downtime, and improve operational performance through quality products and technical support.',
+  vision:
+    "To become Africa's most trusted industrial engineering solutions provider, recognized for innovation, reliability, technical excellence, and outstanding customer satisfaction.",
+  mission:
+    'To deliver reliable, efficient, and innovative industrial engineering solutions that help businesses optimize performance, reduce downtime, and achieve sustainable growth.',
+  productImages: [],
+  projectImages: [],
+  certImages: [],
+  updatedAt: new Date(),
+};
+
+export async function getCompanyProfile(): Promise<CompanyProfileContent> {
+  const existing = await db.companyProfile.toArray();
+  if (existing.length > 0) {
+    return existing[0];
+  }
+  const profile = { ...DEFAULT_PROFILE_CONTENT, updatedAt: new Date() };
+  const id = await db.companyProfile.add(profile);
+  return { ...profile, id };
+}
+
+export async function saveCompanyProfile(
+  profile: CompanyProfileContent
+): Promise<CompanyProfileContent> {
+  const toSave = { ...profile, updatedAt: new Date() };
+  if (toSave.id) {
+    await db.companyProfile.put(toSave);
+    return toSave;
+  }
+  const id = await db.companyProfile.add(toSave);
+  return { ...toSave, id };
 }

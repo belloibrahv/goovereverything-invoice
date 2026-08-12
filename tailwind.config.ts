@@ -22,13 +22,16 @@ const config: Config = {
           900: '#7f1d1d',
         },
         brand: {
-          red: '#dc2626',
+          red: '#a10409',
+          'red-dark': '#7a0307',
+          'red-light': '#c41a20',
           gray: '#4b5563',
           dark: '#1f2937',
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-sans)', 'Segoe UI', 'system-ui', 'sans-serif'],
+        display: ['var(--font-display)', 'Georgia', 'serif'],
       },
     },
   },
