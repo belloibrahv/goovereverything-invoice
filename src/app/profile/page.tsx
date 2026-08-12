@@ -3,13 +3,18 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
-import { Download, Save, Trash2, Upload, ImagePlus } from 'lucide-react';
+import { Download, Save, Trash2, Upload, ImagePlus, Eye, X } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
+import type jsPDF from 'jspdf';
 import { AppShell } from '@/components/AppShell';
 import { useAppStore } from '@/lib/store';
 import { getCompanyProfile, saveCompanyProfile } from '@/lib/db';
 import { resizeImageToDataUrl } from '@/lib/image-utils';
-import { generateCompanyProfilePDF, downloadCompanyProfilePDF } from '@/lib/profile-pdf';
+import {
+  generateCompanyProfilePDF,
+  downloadCompanyProfilePDF,
+  profilePdfToBlobUrl,
+} from '@/lib/profile-pdf';
 import type { CompanyProfileContent, ProfileImageSlot } from '@/types';
 
 function ImageUploadCard({
@@ -70,7 +75,9 @@ export default function ProfilePage() {
   const { settings } = useAppStore();
   const [profile, setProfile] = useState<CompanyProfileContent | null>(null);
   const [saving, setSaving] = useState(false);
-  const [downloading, setDownloading] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewPdf, setPreviewPdf] = useState<jsPDF | null>(null);
 
   useEffect(() => {
     getCompanyProfile()
@@ -78,15 +85,18 @@ export default function ProfilePage() {
       .catch(() => toast.error('Failed to load company profile'));
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
   const update = (patch: Partial<CompanyProfileContent>) => {
     if (!profile) return;
     setProfile({ ...profile, ...patch });
   };
 
-  const handleSingleUpload = async (
-    file: File,
-    key: 'heroImage' | 'teamImage'
-  ) => {
+  const handleSingleUpload = async (file: File, key: 'heroImage' | 'teamImage') => {
     try {
       const dataUrl = await resizeImageToDataUrl(file);
       update({ [key]: dataUrl });
@@ -138,12 +148,47 @@ export default function ProfilePage() {
     }
   };
 
-  const handleDownload = async () => {
+  const closePreview = () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(null);
+    setPreviewPdf(null);
+  };
+
+  const handlePreview = async () => {
     if (!profile || !settings) {
       toast.error('Settings and profile are required');
       return;
     }
-    setDownloading(true);
+    setGenerating(true);
+    try {
+      const saved = await saveCompanyProfile(profile);
+      setProfile(saved);
+      const pdf = await generateCompanyProfilePDF(settings, saved);
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      const url = profilePdfToBlobUrl(pdf);
+      setPreviewPdf(pdf);
+      setPreviewUrl(url);
+      toast.success('PDF preview ready');
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to generate PDF preview');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleDownloadFromPreview = () => {
+    if (!previewPdf) return;
+    downloadCompanyProfilePDF(previewPdf);
+    toast.success('Profile PDF downloaded');
+  };
+
+  const handleDownloadDirect = async () => {
+    if (!profile || !settings) {
+      toast.error('Settings and profile are required');
+      return;
+    }
+    setGenerating(true);
     try {
       const saved = await saveCompanyProfile(profile);
       setProfile(saved);
@@ -154,7 +199,7 @@ export default function ProfilePage() {
       console.error(e);
       toast.error('Failed to generate PDF');
     } finally {
-      setDownloading(false);
+      setGenerating(false);
     }
   };
 
@@ -176,8 +221,8 @@ export default function ProfilePage() {
             </p>
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mt-1">Company Profile</h1>
             <p className="text-gray-600 mt-1 max-w-2xl">
-              Edit copy, upload field and product images, then download a branded SAMIDAK profile PDF
-              to send with introductions and quotations.
+              Edit copy, upload images, preview the branded PDF, then download it to send with
+              introductions and quotations.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -186,20 +231,34 @@ export default function ProfilePage() {
             </button>
             <button
               type="button"
+              className="btn-outline"
+              onClick={handlePreview}
+              disabled={generating}
+            >
+              <Eye className="w-4 h-4" />
+              {generating ? 'Generating…' : 'Preview PDF'}
+            </button>
+            <button
+              type="button"
               className="btn-primary"
-              onClick={handleDownload}
-              disabled={downloading}
+              onClick={handleDownloadDirect}
+              disabled={generating}
             >
               <Download className="w-4 h-4" />
-              {downloading ? 'Generating…' : 'Download PDF'}
+              Download PDF
             </button>
           </div>
         </div>
 
-        {/* Brand strip preview */}
         <div className="card overflow-hidden">
           <div className="bg-brand-red text-white px-5 py-6 flex items-center gap-4">
-            <Image src="/logo.png" alt="SAMIDAK" width={56} height={56} className="object-contain bg-white rounded-md p-1" />
+            <Image
+              src="/logo.png"
+              alt="SAMIDAK"
+              width={56}
+              height={56}
+              className="object-contain bg-white rounded-md p-1"
+            />
             <div>
               <p className="text-xl font-bold tracking-wide">SAMIDAK</p>
               <p className="text-sm text-white/90">
@@ -367,6 +426,38 @@ export default function ProfilePage() {
           </p>
         </div>
       </div>
+
+      {previewUrl && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-3 md:p-6">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/60"
+            aria-label="Close preview"
+            onClick={closePreview}
+          />
+          <div className="relative w-full max-w-5xl h-[90vh] bg-white rounded-xl shadow-2xl overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between gap-3 px-4 py-3 border-b bg-gray-50">
+              <div>
+                <p className="text-sm font-semibold text-gray-900">Company Profile preview</p>
+                <p className="text-xs text-gray-500">Review the PDF before downloading</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  className="btn-primary text-sm py-2"
+                  onClick={handleDownloadFromPreview}
+                >
+                  <Download className="w-4 h-4" /> Download
+                </button>
+                <button type="button" className="btn-outline text-sm py-2 px-3" onClick={closePreview}>
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+            <iframe title="Company Profile PDF Preview" src={previewUrl} className="flex-1 w-full bg-gray-100" />
+          </div>
+        </div>
+      )}
     </AppShell>
   );
 }

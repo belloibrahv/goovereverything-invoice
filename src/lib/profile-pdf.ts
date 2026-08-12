@@ -828,3 +828,8 @@ export async function generateCompanyProfilePDF(
 export function downloadCompanyProfilePDF(pdf: jsPDF) {
   pdf.save('SAMIDAK_Company_Profile_2026.pdf');
 }
+
+export function profilePdfToBlobUrl(pdf: jsPDF): string {
+  const blob = pdf.output('blob');
+  return URL.createObjectURL(blob);
+}

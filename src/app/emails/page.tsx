@@ -76,134 +76,127 @@ const emptyFields = (): MergeFields => ({
 async function copyText(text: string, label: string) {
   try {
     await navigator.clipboard.writeText(text);
-    toast.success(`${label} copied`);
+    toast.success(`${label} copied — paste into your email`);
   } catch {
     toast.error('Could not copy to clipboard');
   }
 }
 
-async function copyHtml(html: string) {
+/** Copy rich HTML that pastes cleanly into Gmail / Outlook compose. */
+async function copyRichForEmail(htmlFragment: string, plainText: string) {
+  // Preferred for Gmail: select a hidden rich node and execCommand('copy')
+  try {
+    const host = document.createElement('div');
+    host.setAttribute('contenteditable', 'true');
+    host.innerHTML = htmlFragment;
+    host.style.position = 'fixed';
+    host.style.left = '-9999px';
+    host.style.top = '0';
+    document.body.appendChild(host);
+
+    const selection = window.getSelection();
+    const range = document.createRange();
+    range.selectNodeContents(host);
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+
+    const ok = document.execCommand('copy');
+    selection?.removeAllRanges();
+    document.body.removeChild(host);
+
+    if (ok) {
+      toast.success('Email copied — paste into Gmail / Outlook compose');
+      return;
+    }
+  } catch {
+    /* fall through */
+  }
+
   try {
     if (typeof ClipboardItem !== 'undefined') {
-      const item = new ClipboardItem({
-        'text/html': new Blob([html], { type: 'text/html' }),
-        'text/plain': new Blob([html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()], {
-          type: 'text/plain',
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          'text/html': new Blob([htmlFragment], { type: 'text/html' }),
+          'text/plain': new Blob([plainText], { type: 'text/plain' }),
         }),
-      });
-      await navigator.clipboard.write([item]);
-    } else {
-      await navigator.clipboard.writeText(html);
+      ]);
+      toast.success('Email copied — paste into Gmail / Outlook compose');
+      return;
     }
-    toast.success('HTML email copied');
   } catch {
-    try {
-      await navigator.clipboard.writeText(html);
-      toast.success('Email HTML copied as text');
-    } catch {
-      toast.error('Could not copy HTML');
-    }
+    /* fall through */
+  }
+
+  try {
+    await navigator.clipboard.writeText(plainText);
+    toast.success('Plain email copied — paste into your mail');
+  } catch {
+    toast.error('Could not copy email');
   }
 }
 
-function buildEmailHtml(opts: {
-  subject: string;
+function escapeHtml(text: string) {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/** Paste-ready fragment (no localhost images) for Gmail/Outlook. */
+function buildPasteableEmailHtml(opts: {
   body: string;
   cta?: string;
-  logoSrc: string;
-  wordmarkSrc: string;
   companyName: string;
   email: string;
   phone: string;
   website: string;
 }) {
-  const bodyHtml = opts.body
+  const paragraphs = opts.body
     .split('\n')
     .map((line) => {
-      if (!line.trim()) return '<br/>';
-      return `<p style="margin:0 0 10px;line-height:1.55;color:#1f2937;font-size:14px;font-family:Segoe UI,Arial,sans-serif;">${line
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')}</p>`;
+      if (!line.trim()) return '<div style="height:10px;line-height:10px;">&nbsp;</div>';
+      return `<p style="margin:0 0 10px 0;padding:0;line-height:1.55;color:#1f2937;font-size:14px;font-family:Segoe UI,Arial,sans-serif;">${escapeHtml(line)}</p>`;
     })
     .join('');
 
-  const ctaHtml = opts.cta
-    ? `<div style="margin:22px 0;padding:16px 18px;border-left:4px solid #a10409;background:#faf5f5;border-radius:0 8px 8px 0;">
+  const ctaBlock = opts.cta
+    ? `<div style="margin:18px 0;padding:12px 14px;border-left:4px solid #a10409;background:#faf5f5;">
         ${opts.cta
           .split('\n')
           .map(
             (l) =>
-              `<p style="margin:0 0 6px;color:#1f2937;font-size:13px;line-height:1.5;">${l
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')}</p>`
+              `<p style="margin:0 0 6px 0;color:#1f2937;font-size:13px;line-height:1.5;font-family:Segoe UI,Arial,sans-serif;">${escapeHtml(l)}</p>`
           )
           .join('')}
       </div>`
     : '';
 
-  return `<!DOCTYPE html>
-<html>
-<body style="margin:0;padding:0;background:#ece7e7;font-family:Segoe UI,Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#ece7e7;padding:28px 12px;">
-    <tr><td align="center">
-      <table width="640" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:10px;overflow:hidden;border:1px solid #e5e7eb;box-shadow:0 8px 24px rgba(17,24,39,0.08);">
-        <tr>
-          <td style="background:#a10409;height:5px;font-size:0;line-height:0;">&nbsp;</td>
-        </tr>
-        <tr>
-          <td style="padding:22px 28px 16px;background:linear-gradient(180deg,#ffffff 0%,#faf7f7 100%);border-bottom:1px solid #f0eaea;">
-            <table width="100%" cellpadding="0" cellspacing="0">
-              <tr>
-                <td width="58" valign="middle">
-                  <img src="${opts.logoSrc}" alt="SAMIDAK" width="52" height="52" style="display:block;border-radius:8px;" />
-                </td>
-                <td valign="middle" style="padding-left:12px;">
-                  <img src="${opts.wordmarkSrc}" alt="SAMIDAK" height="28" style="display:block;height:28px;width:auto;max-width:220px;background:#111827;padding:6px 10px;border-radius:6px;" />
-                  <p style="margin:8px 0 0;font-size:11px;letter-spacing:0.06em;color:#6b7280;text-transform:uppercase;">${opts.companyName}</p>
-                  <p style="margin:3px 0 0;font-size:12px;color:#a10409;font-style:italic;">Powering Industry. Delivering Value.</p>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:14px 28px 0;">
-            <p style="margin:0;font-size:10px;color:#9ca3af;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;">Subject</p>
-            <p style="margin:6px 0 18px;font-size:16px;font-weight:700;color:#111827;">${opts.subject
-              .replace(/&/g, '&amp;')
-              .replace(/</g, '&lt;')
-              .replace(/>/g, '&gt;')}</p>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:4px 28px 28px;">
-            ${bodyHtml}
-            ${ctaHtml}
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:18px 28px;background:#111827;color:#f9fafb;">
-            <table width="100%" cellpadding="0" cellspacing="0">
-              <tr>
-                <td width="36" valign="top">
-                  <img src="${opts.logoSrc}" alt="" width="28" height="28" style="display:block;border-radius:4px;background:#fff;" />
-                </td>
-                <td valign="top" style="padding-left:10px;">
-                  <p style="margin:0;font-size:12px;font-weight:700;">SAMIDAK Technical and Allied Services Nigeria Limited</p>
-                  <p style="margin:6px 0 0;font-size:11px;color:#d1d5db;">${opts.email} · ${opts.phone}</p>
-                  <p style="margin:3px 0 0;font-size:11px;color:#fca5a5;">${opts.website}</p>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`;
+  return `<div style="font-family:Segoe UI,Arial,sans-serif;color:#1f2937;font-size:14px;line-height:1.55;max-width:640px;">
+  <div style="border-top:4px solid #a10409;padding-top:14px;margin-bottom:18px;">
+    <p style="margin:0;font-size:20px;font-weight:700;color:#a10409;letter-spacing:0.04em;">SAMIDAK</p>
+    <p style="margin:4px 0 0 0;font-size:11px;color:#6b7280;letter-spacing:0.05em;text-transform:uppercase;">${escapeHtml(opts.companyName)}</p>
+    <p style="margin:4px 0 0 0;font-size:12px;color:#a10409;font-style:italic;">Powering Industry. Delivering Value.</p>
+  </div>
+  ${paragraphs}
+  ${ctaBlock}
+  <div style="margin-top:22px;padding-top:14px;border-top:1px solid #e5e7eb;">
+    <p style="margin:0;font-size:13px;font-weight:700;color:#111827;">SAMIDAK Technical and Allied Services Nigeria Limited</p>
+    <p style="margin:6px 0 0 0;font-size:12px;color:#4b5563;">📧 ${escapeHtml(opts.email)}</p>
+    <p style="margin:2px 0 0 0;font-size:12px;color:#4b5563;">📞 ${escapeHtml(opts.phone)}</p>
+    <p style="margin:2px 0 0 0;font-size:12px;color:#a10409;">🌐 ${escapeHtml(opts.website)}</p>
+  </div>
+</div>`;
+}
+
+function buildPlainEmail(opts: { body: string; cta?: string; email: string; phone: string; website: string }) {
+  const parts = [opts.body.trim()];
+  if (opts.cta?.trim()) parts.push('', opts.cta.trim());
+  parts.push(
+    '',
+    '—',
+    'SAMIDAK Technical and Allied Services Nigeria Limited',
+    opts.email,
+    opts.phone,
+    opts.website
+  );
+  return parts.join('\n');
 }
 
 export default function EmailsPage() {
@@ -254,21 +247,22 @@ export default function EmailsPage() {
   const body = applyMergeFields(selected.body, mergeFields);
   const cta = selected.cta ? applyMergeFields(selected.cta, mergeFields) : undefined;
 
-  const origin = typeof window !== 'undefined' ? window.location.origin : '';
-  const logoSrc = `${origin}/logo.png`;
-  const wordmarkSrc = `${origin}/samidak-logo.png`;
+  const companyName = settings?.name || 'SAMIDAK Technical and Allied Services Nigeria Limited';
+  const email = settings?.email || 'info@samidakservices.com';
+  const phone = settings?.phone || '+234 816 236 8769';
+  const website = settings?.website || 'www.samidakservices.com';
 
-  const html = buildEmailHtml({
-    subject,
+  const pasteHtml = buildPasteableEmailHtml({
     body,
     cta,
-    logoSrc,
-    wordmarkSrc,
-    companyName: settings?.name || 'SAMIDAK Technical and Allied Services Nigeria Limited',
-    email: settings?.email || 'info@samidakservices.com',
-    phone: settings?.phone || '+234 816 236 8769',
-    website: settings?.website || 'www.samidakservices.com',
+    companyName,
+    email,
+    phone,
+    website,
   });
+  const plainEmail = buildPlainEmail({ body, cta, email, phone, website });
+
+  const copyEmailToPaste = () => copyRichForEmail(pasteHtml, plainEmail);
 
   const selectTemplate = (t: EmailTemplate) => {
     setSelectedId(t.id);
@@ -468,19 +462,38 @@ export default function EmailsPage() {
                 ))}
               </div>
 
+              <div className="rounded-lg border border-brand-red/20 bg-red-50/50 px-3 py-3 space-y-2">
+                <p className="text-xs font-semibold text-brand-red uppercase tracking-wide">
+                  Paste into your mail app
+                </p>
+                <ol className="text-xs text-gray-600 list-decimal list-inside space-y-1">
+                  <li>Copy the subject line</li>
+                  <li>Copy the email message</li>
+                  <li>Open Gmail / Outlook → New message → paste subject, then paste the body</li>
+                </ol>
+              </div>
+
               <div className="flex flex-wrap gap-2 pt-1">
-                <button type="button" className="btn-primary" onClick={() => copyText(subject, 'Subject')}>
-                  <Copy className="w-4 h-4" /> Copy Subject
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={() => copyText(subject, 'Subject')}
+                >
+                  <Copy className="w-4 h-4" /> 1. Copy Subject
                 </button>
-                <button type="button" className="btn-secondary" onClick={() => copyText(body, 'Body')}>
-                  <Copy className="w-4 h-4" /> Copy Body
+                <button type="button" className="btn-primary" onClick={copyEmailToPaste}>
+                  <Check className="w-4 h-4" /> 2. Copy Email to Paste
                 </button>
-                <button type="button" className="btn-outline" onClick={() => copyHtml(html)}>
-                  <Check className="w-4 h-4" /> Copy Branded HTML
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => copyText(plainEmail, 'Plain text email')}
+                >
+                  <Copy className="w-4 h-4" /> Copy as Plain Text
                 </button>
                 {cta && (
                   <button type="button" className="btn-outline" onClick={() => copyText(cta, 'CTA')}>
-                    <Copy className="w-4 h-4" /> Copy CTA
+                    <Copy className="w-4 h-4" /> Copy CTA only
                   </button>
                 )}
               </div>
@@ -490,7 +503,9 @@ export default function EmailsPage() {
             <div className="card overflow-hidden">
               <div className="px-4 py-3 border-b bg-gray-50 flex items-center justify-between">
                 <p className="text-sm font-semibold text-gray-800">Professional preview</p>
-                <p className="text-xs text-gray-500">Copy into Gmail / Outlook after editing fields</p>
+                <p className="text-xs text-gray-500">
+                  Use “Copy Email to Paste”, then paste into Gmail / Outlook
+                </p>
               </div>
               <div className="bg-gradient-to-b from-stone-200/80 to-stone-100 p-4 md:p-8">
                 <div className="mx-auto max-w-2xl bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
