@@ -219,19 +219,19 @@ export default function ProfilePage() {
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-red">
               Customer-facing brochure
             </p>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mt-1">Company Profile</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1">Company Profile</h1>
             <p className="text-gray-600 mt-1 max-w-2xl">
               Edit copy, upload images, preview the branded PDF, then download it to send with
               introductions and quotations.
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <button type="button" className="btn-secondary" onClick={handleSave} disabled={saving}>
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+            <button type="button" className="btn-secondary flex-1 sm:flex-none" onClick={handleSave} disabled={saving}>
               <Save className="w-4 h-4" /> {saving ? 'Saving…' : 'Save'}
             </button>
             <button
               type="button"
-              className="btn-outline"
+              className="btn-outline flex-1 sm:flex-none"
               onClick={handlePreview}
               disabled={generating}
             >
@@ -240,7 +240,7 @@ export default function ProfilePage() {
             </button>
             <button
               type="button"
-              className="btn-primary"
+              className="btn-primary flex-1 sm:flex-none"
               onClick={handleDownloadDirect}
               disabled={generating}
             >
@@ -251,20 +251,20 @@ export default function ProfilePage() {
         </div>
 
         <div className="card overflow-hidden">
-          <div className="bg-brand-red text-white px-5 py-6 flex items-center gap-4">
+          <div className="bg-white px-5 py-5 border-b border-red-100 flex flex-col sm:flex-row sm:items-center gap-4">
             <Image
-              src="/logo.png"
+              src="/samidak_logo.png"
               alt="SAMIDAK"
-              width={56}
-              height={56}
-              className="object-contain bg-white rounded-md p-1"
+              width={360}
+              height={128}
+              className="object-contain object-left h-20 w-auto max-w-full"
+              priority
             />
-            <div>
-              <p className="text-xl font-bold tracking-wide">SAMIDAK</p>
-              <p className="text-sm text-white/90">
-                {settings?.name || 'Technical and Allied Services Nigeria Limited'}
+            <div className="sm:border-l sm:border-gray-200 sm:pl-4">
+              <p className="text-xs italic text-brand-red">{profile.tagline}</p>
+              <p className="text-xs text-gray-500 mt-1">
+                Preview and download your branded company profile PDF
               </p>
-              <p className="text-xs italic text-white/80 mt-1">{profile.tagline}</p>
             </div>
           </div>
         </div>
@@ -428,28 +428,29 @@ export default function ProfilePage() {
       </div>
 
       {previewUrl && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center p-3 md:p-6">
+        <div className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center p-0 sm:p-3 md:p-6">
           <button
             type="button"
             className="absolute inset-0 bg-black/60"
             aria-label="Close preview"
             onClick={closePreview}
           />
-          <div className="relative w-full max-w-5xl h-[90vh] bg-white rounded-xl shadow-2xl overflow-hidden flex flex-col">
-            <div className="flex items-center justify-between gap-3 px-4 py-3 border-b bg-gray-50">
-              <div>
-                <p className="text-sm font-semibold text-gray-900">Company Profile preview</p>
-                <p className="text-xs text-gray-500">Review the PDF before downloading</p>
+          <div className="relative w-full max-w-5xl h-[92dvh] sm:h-[90vh] bg-white rounded-t-2xl sm:rounded-xl shadow-2xl overflow-hidden flex flex-col safe-bottom">
+            <div className="flex items-center justify-between gap-2 px-3 sm:px-4 py-3 border-b bg-gray-50">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-gray-900 truncate">Company Profile preview</p>
+                <p className="text-xs text-gray-500 hidden sm:block">Review the PDF before downloading</p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0">
                 <button
                   type="button"
                   className="btn-primary text-sm py-2"
                   onClick={handleDownloadFromPreview}
                 >
-                  <Download className="w-4 h-4" /> Download
+                  <Download className="w-4 h-4" />
+                  <span className="hidden sm:inline">Download</span>
                 </button>
-                <button type="button" className="btn-outline text-sm py-2 px-3" onClick={closePreview}>
+                <button type="button" className="btn-outline text-sm py-2 px-3 touch-target" onClick={closePreview}>
                   <X className="w-4 h-4" />
                 </button>
               </div>

@@ -176,8 +176,8 @@ export function DocumentForm({ type = 'invoice', editId }: Props) {
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="card p-6 space-y-6">
+    <div className="max-w-4xl mx-auto pb-24 sm:pb-0">
+      <div className="card p-4 sm:p-6 space-y-6">
         {/* Document Type Selector */}
         <div className="flex flex-wrap gap-2">
           {(['invoice', 'quotation', 'waybill'] as DocumentType[]).map((t) => (
@@ -185,7 +185,7 @@ export function DocumentForm({ type = 'invoice', editId }: Props) {
               key={t}
               onClick={() => setDocType(t)}
               disabled={!!editId}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${docType === t
+              className={`px-3 sm:px-4 py-2.5 rounded-lg text-sm font-medium transition-colors touch-target sm:min-h-0 ${docType === t
                 ? 'bg-red-600 text-white'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 } ${editId ? 'cursor-not-allowed' : ''}`}
@@ -396,8 +396,8 @@ export function DocumentForm({ type = 'invoice', editId }: Props) {
           />
         </div>
 
-        {/* Actions */}
-        <div className="flex flex-wrap gap-3 pt-4 border-t">
+        {/* Actions — sticky on mobile for thumb reach */}
+        <div className="hidden sm:flex flex-wrap gap-3 pt-4 border-t">
           <button onClick={() => handleSave(false)} disabled={loading} className="btn-primary">
             <Save className="w-4 h-4" /> Save
           </button>
@@ -408,6 +408,18 @@ export function DocumentForm({ type = 'invoice', editId }: Props) {
             <Download className="w-4 h-4" /> Download PDF
           </button>
         </div>
+      </div>
+
+      <div className="sm:hidden fixed bottom-0 inset-x-0 z-40 border-t border-gray-200 bg-white/95 backdrop-blur p-3 safe-bottom flex gap-2 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
+        <button onClick={() => handleSave(false)} disabled={loading} className="btn-primary flex-1 text-xs px-2">
+          <Save className="w-4 h-4" /> Save
+        </button>
+        <button onClick={() => handleSave(true)} disabled={loading} className="btn-secondary flex-1 text-xs px-2">
+          <Printer className="w-4 h-4" /> Print
+        </button>
+        <button onClick={handleDownload} className="btn-outline flex-1 text-xs px-2">
+          <Download className="w-4 h-4" /> PDF
+        </button>
       </div>
     </div>
   );

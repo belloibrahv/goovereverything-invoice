@@ -23,14 +23,14 @@ function DocumentsContent() {
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
               {type ? titles[type] : 'All Documents'}
             </h1>
             <p className="text-gray-600">
               {type ? `Manage your ${type}s` : 'View and manage all your documents'}
             </p>
           </div>
-          <Link href={`/create${type ? `?type=${type}` : ''}`} className="btn-primary">
+          <Link href={`/create${type ? `?type=${type}` : ''}`} className="btn-primary w-full sm:w-auto justify-center">
             <FilePlus className="w-4 h-4" /> New {type || 'Document'}
           </Link>
         </div>

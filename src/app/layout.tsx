@@ -7,29 +7,49 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'SAMIDAK - Invoice System',
-  description: 'Professional invoice, quotation, and waybill management system',
+  description:
+    'Professional invoice, quotation, waybill, email templates, and company profile system. Works offline as a PWA.',
+  applicationName: 'SAMIDAK',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'SAMIDAK Invoice',
+    title: 'SAMIDAK',
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  icons: {
+    icon: [
+      { url: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icons/icon-512x512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: [{ url: '/icons/apple-touch-icon.png', sizes: '192x192', type: 'image/png' }],
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: '#dc2626',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#a10409' },
+    { media: '(prefers-color-scheme: dark)', color: '#a10409' },
+  ],
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <link rel="apple-touch-icon" href="/icons/icon-192x192.svg" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
       </head>
-      <body className={inter.className} suppressHydrationWarning>
+      <body className={`${inter.className} min-h-dvh`} suppressHydrationWarning>
         <Providers>{children}</Providers>
       </body>
     </html>

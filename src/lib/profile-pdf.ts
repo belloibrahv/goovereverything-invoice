@@ -76,8 +76,7 @@ const WHY = [
 ] as const;
 
 type Assets = {
-  icon: string | null;
-  wordmark: string | null;
+  logo: string | null;
 };
 
 async function loadPublicImage(path: string): Promise<string | null> {
@@ -113,6 +112,11 @@ function safeImage(
   }
 }
 
+/** Full horizontal logo aspect ≈ 2.81 (2103×748) */
+function logoSize(heightMm: number) {
+  return { w: heightMm * 2.81, h: heightMm };
+}
+
 function drawAccentBars(pdf: jsPDF, pageWidth: number) {
   // Top brand ribbon + diagonal corner motif (letterhead-inspired)
   pdf.setFillColor(...BRAND);
@@ -127,19 +131,12 @@ function drawAccentBars(pdf: jsPDF, pageWidth: number) {
 
 function drawPageHeader(pdf: jsPDF, assets: Assets, pageWidth: number, sectionLabel: string) {
   drawAccentBars(pdf, pageWidth);
-  safeImage(pdf, assets.icon, 14, 8, 14, 14);
-  if (assets.wordmark) {
-    safeImage(pdf, assets.wordmark, 30, 9, 52, 12);
-  } else {
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(12);
-    pdf.setTextColor(...BRAND);
-    pdf.text('SAMIDAK', 32, 17);
-  }
+  const { w, h } = logoSize(15);
+  safeImage(pdf, assets.logo, 12, 7, w, h);
   pdf.setFont('helvetica', 'normal');
   pdf.setFontSize(8);
   pdf.setTextColor(...MUTED);
-  pdf.text(sectionLabel.toUpperCase(), pageWidth - 14, 17, { align: 'right' });
+  pdf.text(sectionLabel.toUpperCase(), pageWidth - 14, 16, { align: 'right' });
   pdf.setDrawColor(230, 230, 230);
   pdf.setLineWidth(0.3);
   pdf.line(14, 24, pageWidth - 14, 24);
@@ -158,12 +155,14 @@ function drawFooter(
   pdf.rect(0, pageHeight - 16, pageWidth, 16, 'F');
   pdf.setFillColor(...BRAND);
   pdf.rect(0, pageHeight - 16, pageWidth, 1.2, 'F');
-  safeImage(pdf, assets.icon, 12, pageHeight - 13.5, 8, 8);
+  const { w, h } = logoSize(9);
+  safeImage(pdf, assets.logo, 10, pageHeight - 13.2, w, h);
   pdf.setFontSize(6.5);
   pdf.setTextColor(...GRAY);
   pdf.setFont('helvetica', 'normal');
-  pdf.text(`${contacts.email}  ·  ${contacts.phone}`, 23, pageHeight - 8.5);
-  pdf.text(contacts.web, 23, pageHeight - 4.8);
+  const textX = 10 + w + 4;
+  pdf.text(`${contacts.email}  ·  ${contacts.phone}`, textX, pageHeight - 8.5);
+  pdf.text(contacts.web, textX, pageHeight - 4.8);
   pdf.setFont('helvetica', 'bold');
   pdf.setTextColor(...BRAND);
   pdf.text(`${page} / ${total}`, pageWidth - 12, pageHeight - 6.5, { align: 'right' });
@@ -236,11 +235,8 @@ export async function generateCompanyProfilePDF(
   const contentW = pageWidth - margin * 2;
   const totalPages = 11;
 
-  const [icon, wordmark] = await Promise.all([
-    loadPublicImage('/logo.png'),
-    loadPublicImage('/samidak-logo.png'),
-  ]);
-  const assets: Assets = { icon, wordmark };
+  const logo = await loadPublicImage('/samidak_logo.png');
+  const assets: Assets = { logo };
 
   const contacts = {
     email: settings.email || 'info@samidakservices.com',
@@ -277,32 +273,16 @@ export async function generateCompanyProfilePDF(
     pdf.rect(0, 227, pageWidth, 6, 'F');
   }
 
-  // Logos — icon + full wordmark
-  safeImage(pdf, icon, margin, 28, 32, 32);
-  if (wordmark) {
-    // Wordmark PNG is on dark bg — place on dark panel
-    pdf.setFillColor(10, 10, 10);
-    pdf.roundedRect(margin + 38, 30, 95, 28, 2, 2, 'F');
-    safeImage(pdf, wordmark, margin + 42, 33, 88, 22);
-  } else {
-    pdf.setTextColor(...WHITE);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(28);
-    pdf.text('SAMIDAK', margin + 38, 48);
-  }
-
-  pdf.setTextColor(...WHITE);
-  pdf.setFont('helvetica', 'normal');
-  pdf.setFontSize(8);
-  pdf.text('TECHNICAL AND ALLIED SERVICES NIGERIA LIMITED', margin, 72);
-  pdf.setFontSize(7);
-  pdf.setTextColor(255, 200, 200);
-  pdf.text(`REG NO: ${(settings.regNumber || 'RC 6891936').replace(/^RC\s*/i, '')}`, margin, 78);
+  // Full company logo on white plate
+  const coverLogo = logoSize(36);
+  pdf.setFillColor(...WHITE);
+  pdf.roundedRect(margin, 26, coverLogo.w + 10, coverLogo.h + 8, 3, 3, 'F');
+  safeImage(pdf, logo, margin + 5, 30, coverLogo.w, coverLogo.h);
 
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(26);
   pdf.setTextColor(...WHITE);
-  pdf.text('COMPANY PROFILE', margin, 105);
+  pdf.text('COMPANY PROFILE', margin, 90);
 
   pdf.setFont('helvetica', 'italic');
   pdf.setFontSize(12);
@@ -311,14 +291,15 @@ export async function generateCompanyProfilePDF(
     profile.tagline || 'Industrial Engineering Solutions You Can Trust',
     contentW - 20
   );
-  pdf.text(tagLines, margin, 116);
+  pdf.text(tagLines, margin, 102);
 
   pdf.setFont('helvetica', 'normal');
   pdf.setFontSize(10);
   pdf.setTextColor(...WHITE);
-  pdf.text('Powering Industry. Delivering Value.', margin, 132);
+  pdf.text('Powering Industry. Delivering Value.', margin, 118);
 
   pdf.setFontSize(8);
+  pdf.setTextColor(...WHITE);
   pdf.text('Lagos, Nigeria', margin, 250);
   pdf.text(contacts.web, margin, 256);
   pdf.text(`${contacts.email}  ·  ${contacts.phone}`, margin, 262);
@@ -804,21 +785,15 @@ export async function generateCompanyProfilePDF(
   y += 58;
 
   // Closing brand lockup
-  pdf.setFillColor(...DARK);
-  pdf.roundedRect(margin, y, contentW, 36, 2, 2, 'F');
-  safeImage(pdf, icon, margin + 8, y + 6, 22, 22);
-  if (wordmark) {
-    safeImage(pdf, wordmark, margin + 36, y + 8, 70, 18);
-  } else {
-    pdf.setTextColor(...WHITE);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(14);
-    pdf.text('SAMIDAK', margin + 36, y + 20);
-  }
-  pdf.setTextColor(200, 200, 200);
+  pdf.setFillColor(...WHITE);
+  pdf.setDrawColor(230, 230, 230);
+  pdf.roundedRect(margin, y, contentW, 40, 2, 2, 'FD');
+  const endLogo = logoSize(26);
+  safeImage(pdf, logo, margin + 8, y + 7, endLogo.w, endLogo.h);
+  pdf.setTextColor(...GRAY);
   pdf.setFont('helvetica', 'italic');
   pdf.setFontSize(8);
-  pdf.text('Reliable. Efficient. Professional.', pageWidth - margin - 8, y + 20, {
+  pdf.text('Reliable. Efficient. Professional.', pageWidth - margin - 8, y + 22, {
     align: 'right',
   });
 

@@ -30,7 +30,7 @@ export default function CustomersPage() {
     <AppShell>
       <div className="space-y-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Customers</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Customers</h1>
           <p className="text-gray-600">Manage your customer database</p>
         </div>
 
@@ -54,7 +54,8 @@ export default function CustomersPage() {
                 <h3 className="font-semibold text-gray-900">{customer.name}</h3>
                 <button
                   onClick={() => handleDelete(customer.id!)}
-                  className="p-1 text-gray-400 hover:text-red-600 rounded"
+                  className="p-2 text-gray-400 hover:text-red-600 rounded-lg touch-target"
+                  aria-label={`Delete ${customer.name}`}
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>

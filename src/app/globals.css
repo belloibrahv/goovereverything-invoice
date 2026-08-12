@@ -14,18 +14,33 @@
     --font-display: 'Georgia', 'Times New Roman', serif;
   }
 
-  body {
-    @apply bg-gradient-to-br from-stone-50 via-white to-neutral-50 text-gray-800 antialiased;
-  }
-
   html {
     scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    overflow-x: hidden;
+  }
+
+  body {
+    @apply bg-gradient-to-br from-stone-50 via-white to-neutral-50 text-gray-800 antialiased;
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
+  /* Prevent iOS zoom on focus for inputs under 16px */
+  @media (max-width: 767px) {
+    input,
+    select,
+    textarea {
+      font-size: 16px !important;
+    }
   }
 }
 
 @layer components {
   .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-lg active:scale-[0.98];
+    min-height: 44px;
   }
 
   .btn-primary {
@@ -47,6 +62,7 @@
 
   .input {
     @apply w-full rounded-lg border border-gray-300 px-4 py-2.5 text-base md:text-sm transition-all duration-200 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20 hover:border-gray-400 bg-white placeholder-gray-400;
+    min-height: 44px;
   }
 
   .label {
@@ -59,6 +75,19 @@
 
   .card-hover {
     @apply card hover:border-red-200 hover:shadow-red-100/50;
+  }
+
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .safe-top {
+    padding-top: max(0px, env(safe-area-inset-top));
+  }
+
+  .safe-bottom {
+    padding-bottom: max(0px, env(safe-area-inset-bottom));
   }
 }
 

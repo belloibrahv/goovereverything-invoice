@@ -122,11 +122,11 @@ export default function SettingsPage() {
     <AppShell>
       <div className="max-w-2xl mx-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Settings</h1>
           <p className="text-gray-600">Configure your company details and payment information</p>
         </div>
 
-        <div className="card p-6 space-y-6">
+        <div className="card p-4 sm:p-6 space-y-6">
           <h2 className="text-lg font-semibold border-b pb-2">Company Information</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -320,13 +320,13 @@ export default function SettingsPage() {
           </div>
 
           <div className="pt-4 border-t">
-            <button onClick={handleSave} disabled={saving} className="btn-primary">
+            <button onClick={handleSave} disabled={saving} className="btn-primary w-full sm:w-auto">
               <Save className="w-4 h-4" /> {saving ? 'Saving...' : 'Save Settings'}
             </button>
           </div>
         </div>
 
-        <div className="card p-6">
+        <div className="card p-4 sm:p-6">
           <h2 className="text-lg font-semibold mb-2">Offline Storage</h2>
           <p className="text-sm text-gray-600">
             All your data is stored locally on this device using IndexedDB. Your invoices, quotations,

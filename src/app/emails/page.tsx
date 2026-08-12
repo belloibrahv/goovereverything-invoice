@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
 import { Copy, Search, Mail, Check } from 'lucide-react';
@@ -139,7 +139,7 @@ function escapeHtml(text: string) {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-/** Paste-ready fragment (no localhost images) for Gmail/Outlook. */
+/** Paste-ready fragment with embedded logo for Gmail/Outlook. */
 function buildPasteableEmailHtml(opts: {
   body: string;
   cta?: string;
@@ -147,6 +147,7 @@ function buildPasteableEmailHtml(opts: {
   email: string;
   phone: string;
   website: string;
+  logoDataUrl?: string | null;
 }) {
   const paragraphs = opts.body
     .split('\n')
@@ -168,10 +169,14 @@ function buildPasteableEmailHtml(opts: {
       </div>`
     : '';
 
+  const logoBlock = opts.logoDataUrl
+    ? `<img src="${opts.logoDataUrl}" alt="SAMIDAK" width="280" style="display:block;width:280px;max-width:100%;height:auto;margin:0 0 14px 0;" />`
+    : `<p style="margin:0;font-size:20px;font-weight:700;color:#a10409;letter-spacing:0.04em;">SAMIDAK</p>
+    <p style="margin:4px 0 0 0;font-size:11px;color:#6b7280;letter-spacing:0.05em;text-transform:uppercase;">${escapeHtml(opts.companyName)}</p>`;
+
   return `<div style="font-family:Segoe UI,Arial,sans-serif;color:#1f2937;font-size:14px;line-height:1.55;max-width:640px;">
   <div style="border-top:4px solid #a10409;padding-top:14px;margin-bottom:18px;">
-    <p style="margin:0;font-size:20px;font-weight:700;color:#a10409;letter-spacing:0.04em;">SAMIDAK</p>
-    <p style="margin:4px 0 0 0;font-size:11px;color:#6b7280;letter-spacing:0.05em;text-transform:uppercase;">${escapeHtml(opts.companyName)}</p>
+    ${logoBlock}
     <p style="margin:4px 0 0 0;font-size:12px;color:#a10409;font-style:italic;">Powering Industry. Delivering Value.</p>
   </div>
   ${paragraphs}
@@ -208,6 +213,31 @@ export default function EmailsPage() {
   const [segmentId, setSegmentId] = useState<string>('');
   const [fields, setFields] = useState<MergeFields>(emptyFields);
   const [showResources, setShowResources] = useState(false);
+  const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/samidak_logo.png')
+      .then((r) => r.blob())
+      .then(
+        (blob) =>
+          new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          })
+      )
+      .then((dataUrl) => {
+        if (!cancelled) setLogoDataUrl(dataUrl);
+      })
+      .catch(() => {
+        /* preview still works via Image src */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const selected: EmailTemplate =
     EMAIL_TEMPLATES.find((t) => t.id === selectedId) || EMAIL_TEMPLATES[0];
@@ -259,6 +289,7 @@ export default function EmailsPage() {
     email,
     phone,
     website,
+    logoDataUrl,
   });
   const plainEmail = buildPlainEmail({ body, cta, email, phone, website });
 
@@ -279,7 +310,7 @@ export default function EmailsPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-red">
               Corporate Communication
             </p>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mt-1">Email Templates</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1">Email Templates</h1>
             <p className="text-gray-600 mt-1 max-w-2xl">
               Select a mail type, fill in the details, then copy a professional branded email for
               outreach, sales, projects, and support.
@@ -334,9 +365,9 @@ export default function EmailsPage() {
           </div>
         )}
 
-        <div className="grid lg:grid-cols-12 gap-4 min-h-[70vh]">
+        <div className="grid lg:grid-cols-12 gap-4 lg:min-h-[70vh]">
           {/* Template list */}
-          <aside className="lg:col-span-4 card p-3 md:p-4 flex flex-col gap-3">
+          <aside className="lg:col-span-4 card p-3 md:p-4 flex flex-col gap-3 max-h-[42vh] lg:max-h-none">
             <div className="relative">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
@@ -351,7 +382,7 @@ export default function EmailsPage() {
                 type="button"
                 onClick={() => setCategory('all')}
                 className={cn(
-                  'px-2.5 py-1 rounded-md text-xs font-medium border',
+                  'px-2.5 py-1.5 rounded-md text-xs font-medium border touch-target sm:min-h-0 sm:min-w-0',
                   category === 'all'
                     ? 'bg-brand-red text-white border-brand-red'
                     : 'bg-white text-gray-600 border-gray-200 hover:border-brand-red/40'
@@ -365,7 +396,7 @@ export default function EmailsPage() {
                   type="button"
                   onClick={() => setCategory(c.id)}
                   className={cn(
-                    'px-2.5 py-1 rounded-md text-xs font-medium border',
+                    'px-2.5 py-1.5 rounded-md text-xs font-medium border',
                     category === c.id
                       ? 'bg-brand-red text-white border-brand-red'
                       : 'bg-white text-gray-600 border-gray-200 hover:border-brand-red/40'
@@ -375,7 +406,7 @@ export default function EmailsPage() {
                 </button>
               ))}
             </div>
-            <div className="overflow-y-auto max-h-[58vh] space-y-1 pr-1">
+            <div className="overflow-y-auto flex-1 min-h-0 space-y-1 pr-1 overscroll-contain">
               {filtered.map((t) => (
                 <button
                   key={t.id}
@@ -473,26 +504,34 @@ export default function EmailsPage() {
                 </ol>
               </div>
 
-              <div className="flex flex-wrap gap-2 pt-1">
+              <div className="flex flex-col sm:flex-row flex-wrap gap-2 pt-1">
                 <button
                   type="button"
-                  className="btn-primary"
+                  className="btn-primary w-full sm:w-auto justify-center"
                   onClick={() => copyText(subject, 'Subject')}
                 >
                   <Copy className="w-4 h-4" /> 1. Copy Subject
                 </button>
-                <button type="button" className="btn-primary" onClick={copyEmailToPaste}>
+                <button
+                  type="button"
+                  className="btn-primary w-full sm:w-auto justify-center"
+                  onClick={copyEmailToPaste}
+                >
                   <Check className="w-4 h-4" /> 2. Copy Email to Paste
                 </button>
                 <button
                   type="button"
-                  className="btn-secondary"
+                  className="btn-secondary w-full sm:w-auto justify-center"
                   onClick={() => copyText(plainEmail, 'Plain text email')}
                 >
                   <Copy className="w-4 h-4" /> Copy as Plain Text
                 </button>
                 {cta && (
-                  <button type="button" className="btn-outline" onClick={() => copyText(cta, 'CTA')}>
+                  <button
+                    type="button"
+                    className="btn-outline w-full sm:w-auto justify-center"
+                    onClick={() => copyText(cta, 'CTA')}
+                  >
                     <Copy className="w-4 h-4" /> Copy CTA only
                   </button>
                 )}
@@ -501,40 +540,27 @@ export default function EmailsPage() {
 
             {/* Branded preview */}
             <div className="card overflow-hidden">
-              <div className="px-4 py-3 border-b bg-gray-50 flex items-center justify-between">
+              <div className="px-4 py-3 border-b bg-gray-50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
                 <p className="text-sm font-semibold text-gray-800">Professional preview</p>
                 <p className="text-xs text-gray-500">
                   Use “Copy Email to Paste”, then paste into Gmail / Outlook
                 </p>
               </div>
-              <div className="bg-gradient-to-b from-stone-200/80 to-stone-100 p-4 md:p-8">
-                <div className="mx-auto max-w-2xl bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+              <div className="bg-gradient-to-b from-stone-200/80 to-stone-100 p-3 sm:p-4 md:p-8 overflow-x-auto">
+                <div className="mx-auto max-w-2xl bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden min-w-[280px]">
                   <div className="h-1.5 bg-brand-red" />
-                  <div className="px-6 py-5 border-b border-red-50 bg-gradient-to-b from-white to-red-50/40 flex items-center gap-3">
+                  <div className="px-4 sm:px-6 py-5 border-b border-red-50 bg-gradient-to-b from-white to-red-50/30">
                     <Image
-                      src="/logo.png"
+                      src="/samidak_logo.png"
                       alt="SAMIDAK"
-                      width={52}
-                      height={52}
-                      className="object-contain rounded-lg"
+                      width={320}
+                      height={114}
+                      className="object-contain object-left h-16 w-auto max-w-full"
+                      priority
                     />
-                    <div className="min-w-0">
-                      <div className="inline-flex items-center rounded-md bg-gray-900 px-2.5 py-1.5">
-                        <Image
-                          src="/samidak-logo.png"
-                          alt="SAMIDAK wordmark"
-                          width={140}
-                          height={28}
-                          className="object-contain h-7 w-auto"
-                        />
-                      </div>
-                      <p className="text-xs text-gray-500 uppercase tracking-wide mt-2 truncate">
-                        {settings?.name || 'SAMIDAK Technical and Allied Services Nigeria Limited'}
-                      </p>
-                      <p className="text-xs text-brand-red italic mt-0.5">
-                        Powering Industry. Delivering Value.
-                      </p>
-                    </div>
+                    <p className="text-xs text-brand-red italic mt-3">
+                      Powering Industry. Delivering Value.
+                    </p>
                   </div>
                   <div className="px-6 pt-4">
                     <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold">Subject</p>
@@ -548,26 +574,17 @@ export default function EmailsPage() {
                       {cta}
                     </div>
                   )}
-                  <div className="px-6 py-4 bg-gray-900 text-white flex items-start gap-3">
-                    <Image
-                      src="/logo.png"
-                      alt=""
-                      width={28}
-                      height={28}
-                      className="object-contain rounded bg-white p-0.5"
-                    />
-                    <div>
-                      <p className="text-xs font-semibold">
-                        SAMIDAK Technical and Allied Services Nigeria Limited
-                      </p>
-                      <p className="text-[11px] text-gray-300 mt-1">
-                        {settings?.email || 'info@samidakservices.com'} ·{' '}
-                        {settings?.phone || '+234 816 236 8769'}
-                      </p>
-                      <p className="text-[11px] text-red-300 mt-0.5">
-                        {settings?.website || 'www.samidakservices.com'}
-                      </p>
-                    </div>
+                  <div className="px-6 py-4 bg-gray-900 text-white">
+                    <p className="text-xs font-semibold">
+                      SAMIDAK Technical and Allied Services Nigeria Limited
+                    </p>
+                    <p className="text-[11px] text-gray-300 mt-1">
+                      {settings?.email || 'info@samidakservices.com'} ·{' '}
+                      {settings?.phone || '+234 816 236 8769'}
+                    </p>
+                    <p className="text-[11px] text-red-300 mt-0.5">
+                      {settings?.website || 'www.samidakservices.com'}
+                    </p>
                   </div>
                 </div>
               </div>

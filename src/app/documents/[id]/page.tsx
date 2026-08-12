@@ -80,20 +80,20 @@ export default function DocumentViewPage() {
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Link href={`/create?edit=${doc.id}`} className="btn-outline">
+            <Link href={`/create?edit=${doc.id}`} className="btn-outline flex-1 sm:flex-none justify-center">
               <Edit className="w-4 h-4" /> Edit
             </Link>
-            <button onClick={handleDownload} className="btn-outline">
+            <button onClick={handleDownload} className="btn-outline flex-1 sm:flex-none justify-center">
               <Download className="w-4 h-4" /> Download
             </button>
-            <button onClick={handlePrint} className="btn-primary">
+            <button onClick={handlePrint} className="btn-primary flex-1 sm:flex-none justify-center">
               <Printer className="w-4 h-4" /> Print
             </button>
           </div>
         </div>
 
         {/* Document Preview */}
-        <div className="card p-6 md:p-8 space-y-6">
+        <div className="card p-4 sm:p-6 md:p-8 space-y-6 overflow-x-auto">
           {/* Company Header */}
           <div className="flex flex-col md:flex-row md:justify-between gap-4 pb-6 border-b">
             <div>

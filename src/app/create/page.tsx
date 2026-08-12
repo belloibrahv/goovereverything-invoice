@@ -15,7 +15,7 @@ function CreateContent() {
     <AppShell>
       <div className="space-y-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
             {editId ? 'Edit Document' : 'Create New Document'}
           </h1>
           <p className="text-gray-600">
