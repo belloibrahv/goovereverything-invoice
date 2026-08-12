@@ -101,6 +101,7 @@ export default function DocumentViewPage() {
               <p className="text-sm text-gray-600">{settings?.address}</p>
               <p className="text-sm text-gray-600">Phone: {settings?.phone}</p>
               <p className="text-sm text-gray-600">Email: {settings?.email}</p>
+              {settings?.website && <p className="text-sm text-gray-600">Website: {settings.website}</p>}
             </div>
             <div className="text-left md:text-right">
               <p className="text-lg font-semibold text-gray-800">{typeLabels[doc.type].toUpperCase()}</p>
@@ -133,7 +134,7 @@ export default function DocumentViewPage() {
               <tbody className="divide-y">
                 {doc.items.map((item) => (
                   <tr key={item.id}>
-                    <td className="px-4 py-3">{item.description}</td>
+                    <td className="px-4 py-3 whitespace-pre-wrap break-words">{item.description}</td>
                     <td className="px-4 py-3 text-center">{item.quantity}</td>
                     <td className="px-4 py-3 text-right">{formatCurrency(item.unitPrice, doc.currency)}</td>
                     <td className="px-4 py-3 text-right font-medium">{formatCurrency(item.amount, doc.currency)}</td>

@@ -288,9 +288,9 @@ export function DocumentForm({ type = 'invoice', editId }: Props) {
               <div key={item.id} className="grid grid-cols-12 gap-2 md:gap-3 p-3 bg-gray-50 rounded-lg items-start">
                 {/* Description - Full width on mobile, spans 5 on desktop */}
                 <div className="col-span-12 md:col-span-5">
-                  <input
-                    type="text"
-                    className="input"
+                  <textarea
+                    className="input min-h-[42px] resize-y"
+                    rows={2}
                     value={item.description}
                     onChange={(e) => updateItem(item.id, 'description', e.target.value)}
                     placeholder="Item description"

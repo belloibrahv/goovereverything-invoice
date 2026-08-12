@@ -185,9 +185,37 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
     y = 20; // fallback if no image
   }
 
-  // --- COMPANY CONTACT INFO ---
-  // Removed as per user request (redundant with letterhead)
+  // Redraw footer contacts from settings (letterhead may have outdated email)
+  const drawSettingsFooter = () => {
+    const bandTop = pageHeight - footerHeight + 2;
+    pdf.setFillColor(255, 255, 255);
+    pdf.rect(0, bandTop, pageWidth, footerHeight - 2, 'F');
 
+    pdf.setDrawColor(...COLORS.borderColor);
+    pdf.setLineWidth(0.3);
+    pdf.line(margin, bandTop + 1, pageWidth - margin, bandTop + 1);
+
+    const textY = bandTop + 7;
+    const colW = contentWidth / 3;
+    pdf.setFontSize(7);
+    pdf.setFont(FONTS.regular, 'normal');
+    pdf.setTextColor(...COLORS.textDark);
+
+    const addrLines = pdf.splitTextToSize(settings.address || '', colW - 4);
+    pdf.text(addrLines.slice(0, 2), margin, textY);
+
+    const midX = margin + colW + colW / 2;
+    pdf.text(settings.email || '', midX, textY, { align: 'center' });
+    if (settings.website) {
+      pdf.text(settings.website, midX, textY + 4, { align: 'center' });
+    }
+
+    pdf.text(settings.phone || '', pageWidth - margin, textY, { align: 'right' });
+  };
+
+  if (images.full || images.footer) {
+    drawSettingsFooter();
+  }
 
   // --- DOCUMENT HEADER SECTION ---
   // Left: Bill To
@@ -221,12 +249,13 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
   pdf.setTextColor(...COLORS.textDark);
   pdf.setFont(FONTS.bold, 'bold');
   y += 5;
-  pdf.text(doc.customer.name, margin, y);
+  const nameLines = pdf.splitTextToSize(doc.customer.name || '', colWidth);
+  pdf.text(nameLines, margin, y);
+  y += Math.max(5, nameLines.length * 5);
 
   pdf.setFontSize(10);
   pdf.setFont(FONTS.regular, 'normal');
   pdf.setTextColor(...COLORS.textDark);
-  y += 5;
 
   let addrY = y;
   if (doc.customer.address) {
@@ -235,12 +264,14 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
     addrY += (splitAddr.length * 4); // spacing
   }
   if (doc.customer.phone) {
-    pdf.text(doc.customer.phone, margin, addrY);
-    addrY += 4;
+    const phoneLines = pdf.splitTextToSize(doc.customer.phone, colWidth);
+    pdf.text(phoneLines, margin, addrY);
+    addrY += phoneLines.length * 4;
   }
   if (doc.customer.email) {
-    pdf.text(doc.customer.email, margin, addrY);
-    addrY += 4;
+    const emailLines = pdf.splitTextToSize(doc.customer.email, colWidth);
+    pdf.text(emailLines, margin, addrY);
+    addrY += emailLines.length * 4;
   }
 
   // --- DOC INFO (RIGHT) ---
@@ -312,42 +343,52 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
 
   y += headerH;
 
-  // Rows
-  const rowH = 10; // slightly taller for breathing room
-  doc.items.forEach((item, index) => {
-    // Check page break
-    if (y + rowH > pageHeight - footerHeight - 40) { // Keep space for totals/footer
-      pdf.addPage();
-      // Re-draw header image on new page? Usually yes for branding consistency, or just small logo.
-      // User Request: Remove header from next (page 2 and on) but keep watermark (part of full image).
-      if (images.full) {
-        pdf.addImage(images.full, 'PNG', 0, 0, pageWidth, pageHeight);
-        // Mask the header part to hide the logo, but keep watermark/footer
-        // The header graphics extend deeper than expected.
-        // Using 120mm to be absolutely safe and cover all top graphics.
-        pdf.setFillColor(255, 255, 255);
-        pdf.rect(0, 0, pageWidth, 120, 'F');
-        y = 20; // Start content higher since no header
-      } else if (images.header) {
-        // If only header exists (fallback), do NOT draw it on page 2+ as per request
-        y = 20;
-      } else {
-        y = 20;
-      }
+  // Rows — expand height so full descriptions wrap instead of truncating
+  const descLineH = 4.2;
+  const rowPadY = 3;
+  const minRowH = 10;
+  const maxDescW = wDesc - 4;
 
-      // Re-draw table header
-      pdf.setFillColor(...COLORS.tableHeaderBg);
-      pdf.rect(margin, y, contentWidth, headerH, 'F');
-      pdf.setFontSize(8);
-      pdf.setFont(FONTS.bold, 'bold');
-      pdf.setTextColor(...COLORS.tableHeaderTx);
-      const hy = y + 6.5;
-      pdf.text('S/N', xSN + (wSN / 2), hy, { align: 'center' });
-      pdf.text('DESCRIPTION', xDesc + 2, hy, { align: 'left' });
-      pdf.text('QTY', xQty + (wQty / 2), hy, { align: 'center' });
-      pdf.text('UNIT PRICE', xPrice + wPrice - 2, hy, { align: 'right' });
-      pdf.text('AMOUNT', xAmount + wAmount - 2, hy, { align: 'right' });
-      y += headerH;
+  const startNewPageWithTableHeader = () => {
+    pdf.addPage();
+    // User Request: Remove header from next (page 2 and on) but keep watermark (part of full image).
+    if (images.full) {
+      pdf.addImage(images.full, 'PNG', 0, 0, pageWidth, pageHeight);
+      // Mask the header part to hide the logo, but keep watermark/footer
+      pdf.setFillColor(255, 255, 255);
+      pdf.rect(0, 0, pageWidth, 120, 'F');
+      drawSettingsFooter();
+      y = 20;
+    } else if (images.header) {
+      y = 20;
+    } else {
+      y = 20;
+    }
+
+    // Re-draw table header
+    pdf.setFillColor(...COLORS.tableHeaderBg);
+    pdf.rect(margin, y, contentWidth, headerH, 'F');
+    pdf.setFontSize(8);
+    pdf.setFont(FONTS.bold, 'bold');
+    pdf.setTextColor(...COLORS.tableHeaderTx);
+    const hy = y + 6.5;
+    pdf.text('S/N', xSN + (wSN / 2), hy, { align: 'center' });
+    pdf.text('DESCRIPTION', xDesc + 2, hy, { align: 'left' });
+    pdf.text('QTY', xQty + (wQty / 2), hy, { align: 'center' });
+    pdf.text('UNIT PRICE', xPrice + wPrice - 2, hy, { align: 'right' });
+    pdf.text('AMOUNT', xAmount + wAmount - 2, hy, { align: 'right' });
+    y += headerH;
+  };
+
+  doc.items.forEach((item, index) => {
+    pdf.setFontSize(9);
+    pdf.setFont(FONTS.regular, 'normal');
+    const descLines: string[] = pdf.splitTextToSize(item.description || '', maxDescW);
+    const rowH = Math.max(minRowH, descLines.length * descLineH + rowPadY * 2);
+
+    // Check page break using actual row height
+    if (y + rowH > pageHeight - footerHeight - 40) {
+      startNewPageWithTableHeader();
     }
 
     // Zebra striping
@@ -358,29 +399,20 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
     }
     pdf.rect(margin, y, contentWidth, rowH, 'F');
 
-    // Row Content
+    // Row Content — top-align description; vertically center numeric columns
     pdf.setFontSize(9);
     pdf.setFont(FONTS.regular, 'normal');
     pdf.setTextColor(...COLORS.textDark);
-    const ry = y + 6;
+    const textTop = y + rowPadY + 3.2;
+    const midY = y + rowH / 2 + 1.2;
 
-    pdf.text((index + 1).toString(), xSN + (wSN / 2), ry, { align: 'center' });
-
-    // Truncate description if too long to keep strict line height for now (can expand later if needed)
-    let desc = item.description;
-    const maxDescW = wDesc - 4;
-    if (pdf.getTextWidth(desc) > maxDescW) {
-      // simple truncation
-      desc = pdf.splitTextToSize(desc, maxDescW)[0] + '...';
-    }
-    pdf.text(desc, xDesc + 2, ry, { align: 'left' });
-
-    pdf.text(item.quantity.toString(), xQty + (wQty / 2), ry, { align: 'center' });
-
-    pdf.text(formatAmount(item.unitPrice, doc.currency), xPrice + wPrice - 2, ry, { align: 'right' });
+    pdf.text((index + 1).toString(), xSN + (wSN / 2), midY, { align: 'center' });
+    pdf.text(descLines, xDesc + 2, textTop, { align: 'left' });
+    pdf.text(item.quantity.toString(), xQty + (wQty / 2), midY, { align: 'center' });
+    pdf.text(formatAmount(item.unitPrice, doc.currency), xPrice + wPrice - 2, midY, { align: 'right' });
 
     pdf.setFont(FONTS.bold, 'bold');
-    pdf.text(formatAmount(item.amount, doc.currency), xAmount + wAmount - 2, ry, { align: 'right' });
+    pdf.text(formatAmount(item.amount, doc.currency), xAmount + wAmount - 2, midY, { align: 'right' });
 
     // Bottom border for row
     pdf.setDrawColor(...COLORS.borderColor);
@@ -456,6 +488,7 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
       // Mask the header part
       pdf.setFillColor(255, 255, 255);
       pdf.rect(0, 0, pageWidth, 120, 'F'); // Increased to match items loop
+      drawSettingsFooter();
       y = 20;
     } else if (images.header) {
       // Don't draw header on new page
@@ -485,12 +518,14 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
       pdf.setTextColor(...COLORS.textGray);
 
       const startX = margin;
+      const valueW = contentWidth - 30;
       // Bank Name
       pdf.text('Bank Name:', startX, y);
       pdf.setFont(FONTS.bold, 'bold');
       pdf.setTextColor(...COLORS.textDark);
-      pdf.text(acc.bankName, startX + 25, y);
-      y += 5;
+      const bankLines = pdf.splitTextToSize(acc.bankName || '', valueW);
+      pdf.text(bankLines, startX + 28, y);
+      y += Math.max(5, bankLines.length * 4);
 
       // Account Name
       pdf.setFont(FONTS.regular, 'normal');
@@ -498,8 +533,9 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
       pdf.text('Account Name:', startX, y);
       pdf.setFont(FONTS.bold, 'bold');
       pdf.setTextColor(...COLORS.textDark);
-      pdf.text(acc.accountName, startX + 25, y);
-      y += 5;
+      const acctNameLines = pdf.splitTextToSize(acc.accountName || '', valueW);
+      pdf.text(acctNameLines, startX + 28, y);
+      y += Math.max(5, acctNameLines.length * 4);
 
       // Account No
       pdf.setFont(FONTS.regular, 'normal');
@@ -507,7 +543,7 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
       pdf.text('Account No:', startX, y);
       pdf.setFont(FONTS.bold, 'bold');
       pdf.setTextColor(...COLORS.primary); // Highlight acc number
-      pdf.text(acc.accountNumber, startX + 25, y);
+      pdf.text(acc.accountNumber || '', startX + 28, y);
       y += 8; // spacing between banks
     });
   }
@@ -539,6 +575,7 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
       pdf.addImage(images.full, 'PNG', 0, 0, pageWidth, pageHeight);
       pdf.setFillColor(255, 255, 255);
       pdf.rect(0, 0, pageWidth, 120, 'F');
+      drawSettingsFooter();
       y = 20;
     } else {
       y = 20;
@@ -587,6 +624,10 @@ export async function generatePDF(doc: Document, settings: CompanySettings): Pro
   // Always at bottom. If we have full background, it already includes footer.
   if (!images.full && images.footer) {
     pdf.addImage(images.footer, 'PNG', 0, pageHeight - footerHeight, pageWidth, footerHeight);
+  }
+  // Ensure contact details (email/website) from settings are current on every page
+  if (images.full || images.footer) {
+    drawSettingsFooter();
   }
 
   return pdf;

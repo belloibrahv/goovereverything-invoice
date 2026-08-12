@@ -27,6 +27,14 @@ export default function SettingsPage() {
       const migratedSettings: CompanySettings = {
         ...settings,
         discountRate: settings.discountRate ?? 5, // Add default discount rate if missing
+        email:
+          !settings.email ||
+          ['info@goovereverything.com', 'info@samidak.com', 'akeidsam69@gmail.com', 'samidaktechnicalallied@gmail.com'].includes(
+            settings.email.toLowerCase()
+          )
+            ? 'info@samidakservices.com'
+            : settings.email,
+        website: settings.website || 'www.samidakservices.com',
         bankAccounts: settings.bankAccounts && settings.bankAccounts.length > 0
           ? settings.bankAccounts
           : [
@@ -41,8 +49,16 @@ export default function SettingsPage() {
       setForm(migratedSettings);
 
       // Update store with migrated settings
-      if (needsMigration || settings.discountRate === undefined) {
+      if (
+        needsMigration ||
+        settings.discountRate === undefined ||
+        settings.email !== migratedSettings.email ||
+        !settings.website
+      ) {
         setSettings(migratedSettings);
+        if (migratedSettings.id) {
+          db.settings.put(migratedSettings).catch(console.error);
+        }
       }
     } else {
       initializeSettings().then((s) => {
@@ -152,7 +168,18 @@ export default function SettingsPage() {
                 className="input"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
-                placeholder="akeidsam69@gmail.com"
+                placeholder="info@samidakservices.com"
+              />
+            </div>
+
+            <div>
+              <label className="label">Website</label>
+              <input
+                type="url"
+                className="input"
+                value={form.website || ''}
+                onChange={(e) => setForm({ ...form, website: e.target.value })}
+                placeholder="www.samidakservices.com"
               />
             </div>
 

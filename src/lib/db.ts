@@ -47,45 +47,58 @@ db.on('ready', () => {
   return migrateDocuments();
 });
 
+const DEFAULT_EMAIL = 'info@samidakservices.com';
+const DEFAULT_WEBSITE = 'www.samidakservices.com';
+const OLD_EMAILS = new Set([
+  'info@goovereverything.com',
+  'info@samidak.com',
+  'akeidsam69@gmail.com',
+  'samidaktechnicalallied@gmail.com',
+]);
+
 // Migrate old settings format to new format with bankAccounts array
 function migrateSettings(settings: any): CompanySettings {
-  // If already has bankAccounts array, return as is
-  if (settings.bankAccounts && Array.isArray(settings.bankAccounts) && settings.bankAccounts.length > 0) {
-    return settings as CompanySettings;
-  }
-
   // Migrate from old format (bankName, accountNumber) to new format (bankAccounts array)
-  const bankAccounts: BankAccount[] = [];
+  let bankAccounts: BankAccount[] =
+    settings.bankAccounts && Array.isArray(settings.bankAccounts) && settings.bankAccounts.length > 0
+      ? settings.bankAccounts
+      : [];
 
-  if (settings.bankName || settings.accountNumber) {
-    bankAccounts.push({
-      bankName: settings.bankName || 'FCMB',
-      accountName: settings.name || 'SAMIDAK TECHNICAL AND ALLIED SERVICES',
-      accountNumber: settings.accountNumber || '2002376450',
-      currency: settings.defaultCurrency || 'NGN',
-    });
-  } else {
-    // No bank info at all, add Samidak default
-    bankAccounts.push({
-      bankName: 'FCMB',
-      accountName: 'SAMIDAK TECHNICAL AND ALLIED SERVICES',
-      accountNumber: '2002376450',
-      currency: 'NGN',
-    });
+  if (bankAccounts.length === 0) {
+    if (settings.bankName || settings.accountNumber) {
+      bankAccounts.push({
+        bankName: settings.bankName || 'FCMB',
+        accountName: settings.name || 'SAMIDAK TECHNICAL AND ALLIED SERVICES',
+        accountNumber: settings.accountNumber || '2002376450',
+        currency: settings.defaultCurrency || 'NGN',
+      });
+    } else {
+      // No bank info at all, add Samidak default
+      bankAccounts.push({
+        bankName: 'FCMB',
+        accountName: 'SAMIDAK TECHNICAL AND ALLIED SERVICES',
+        accountNumber: '2002376450',
+        currency: 'NGN',
+      });
+    }
   }
 
   // Check for placeholders or old defaults that need updating
   const isPlaceholderPhone = settings.phone === '+234 XXX XXX XXXX' || !settings.phone;
-  const isOldEmail = settings.email === 'info@goovereverything.com' || settings.email === 'info@samidak.com' || !settings.email;
+  const isOldEmail = !settings.email || OLD_EMAILS.has(String(settings.email).toLowerCase());
   const isOldName = settings.name === 'GOOVEREVERYTHING' || settings.name === 'SAMIDAK' || !settings.name;
 
   return {
+    ...settings,
     id: settings.id,
     name: isOldName ? 'SAMIDAK TECHNICAL AND ALLIED SERVICES' : settings.name,
     regNumber: settings.regNumber || 'RC 6891936',
-    address: (settings.address === 'Lagos, Nigeria' || !settings.address) ? '15 Akinremi St. Ikeja, Lagos 101233' : settings.address,
+    address: (settings.address === 'Lagos, Nigeria' || !settings.address)
+      ? '13, Adeyemi Makinde Str Alagbado-Ila, Alegeunle B/Stop, Lagos State, Nigeria.'
+      : settings.address,
     phone: isPlaceholderPhone ? '+234 816 237 8769' : settings.phone,
-    email: isOldEmail ? 'akeidsam69@gmail.com' : settings.email,
+    email: isOldEmail ? DEFAULT_EMAIL : settings.email,
+    website: settings.website || DEFAULT_WEBSITE,
     bankAccounts,
     taxRate: settings.taxRate ?? 7.5,
     discountRate: settings.discountRate ?? 5, // Default 5% discount
@@ -101,9 +114,16 @@ export async function initializeSettings(): Promise<CompanySettings> {
     if (existing.length > 0) {
       // Migrate existing settings if needed
       const migrated = migrateSettings(existing[0]);
+      const prev = existing[0] as CompanySettings;
 
-      // Save migrated settings back to DB if changed
-      if (!existing[0].bankAccounts || existing[0].bankAccounts.length === 0) {
+      // Persist when bank accounts, email, or website were updated
+      const needsSave =
+        !prev.bankAccounts ||
+        prev.bankAccounts.length === 0 ||
+        prev.email !== migrated.email ||
+        prev.website !== migrated.website;
+
+      if (needsSave) {
         await db.settings.put(migrated);
       }
 
@@ -114,14 +134,10 @@ export async function initializeSettings(): Promise<CompanySettings> {
     const defaultSettings: CompanySettings = {
       name: 'SAMIDAK TECHNICAL AND ALLIED SERVICES',
       regNumber: 'RC 6891936',
-      address: '13, Adeyemi Makinde Str Alagbado-Ila, Alegeunle B/Stop, Lagos State, Nigeria.', // Using address from previous invoice image or user info if not specified? 
-      // User said "appear with the companies address... phone... email". 
-      // The image showed "13, Adeyemi Makinde Str, Alagbado-Ila...". I should use what's in the image or placeholder if not provided fully.
-      // Wait, user provided email and phone. The image shows:
-      // "13, Adeyemi Makinde Str, Alagbado-Ila, Aigunle B/Stop, Lagos State, Nigeria"
-      // I will update the address to match the image + new details.
+      address: '13, Adeyemi Makinde Str Alagbado-Ila, Alegeunle B/Stop, Lagos State, Nigeria.',
       phone: '+234 816 237 8769',
-      email: 'akeidsam69@gmail.com',
+      email: DEFAULT_EMAIL,
+      website: DEFAULT_WEBSITE,
       bankAccounts: [
         {
           bankName: 'FCMB',
@@ -143,7 +159,8 @@ export async function initializeSettings(): Promise<CompanySettings> {
       name: 'SAMIDAK TECHNICAL AND ALLIED SERVICES',
       address: 'Lagos, Nigeria',
       phone: '+234 816 237 8769',
-      email: 'akeidsam69@gmail.com',
+      email: DEFAULT_EMAIL,
+      website: DEFAULT_WEBSITE,
       bankAccounts: [
         {
           bankName: 'FCMB',

@@ -53,6 +53,7 @@ export interface CompanySettings {
   address: string;
   phone: string;
   email: string;
+  website?: string;
   technicalDirectorName?: string; // New field for TD name
   bankAccounts: BankAccount[];
   logo?: string;
